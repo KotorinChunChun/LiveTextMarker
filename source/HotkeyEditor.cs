@@ -6,7 +6,7 @@ internal sealed record HotkeyBinding(uint Modifiers,int Key)
  public static HotkeyBinding QuitDefault=>new(3,(int)Keys.Q);
  public bool Enabled=>Modifiers!=0 || Key!=0;
 }
-internal sealed class HotkeyEditor : FlowLayoutPanel
+internal sealed class HotkeyEditor : TableLayoutPanel
 {
  private readonly CheckBox ctrl=new(){Text="Ctrl",AutoSize=true};
  private readonly CheckBox alt=new(){Text="Alt",AutoSize=true};
@@ -17,9 +17,15 @@ internal sealed class HotkeyEditor : FlowLayoutPanel
  public event EventHandler? BindingChanged;
  public HotkeyBinding Binding=>new((ctrl.Checked?2u:0)|(alt.Checked?1u:0)|(shift.Checked?4u:0)|(win.Checked?8u:0),((KeyChoice?)key.SelectedItem)?.Code??0);
  public HotkeyEditor(string label,HotkeyBinding initial) {
-  AutoSize=true; Dock=DockStyle.Fill; WrapContents=false;
-  Controls.Add(new Label{Text=label,AutoSize=false,Width=105,Height=28,TextAlign=System.Drawing.ContentAlignment.MiddleLeft});
-  Controls.AddRange(new Control[]{ctrl,alt,shift,win,key});
+  AutoSize=true; Dock=DockStyle.Fill; ColumnCount=6; RowCount=1; Margin=Padding.Empty;
+  ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,112));
+  for(int i=0;i<4;i++) ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,68));
+  ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
+  RowStyles.Add(new RowStyle(SizeType.Absolute,32));
+  Controls.Add(new Label{Text=label,Dock=DockStyle.Fill,Margin=Padding.Empty,TextAlign=System.Drawing.ContentAlignment.MiddleLeft},0,0);
+  var checks=new[]{ctrl,alt,shift,win};
+  for(int i=0;i<checks.Length;i++) { checks[i].Anchor=AnchorStyles.Left; checks[i].Margin=Padding.Empty; Controls.Add(checks[i],i+1,0); }
+  key.Dock=DockStyle.Fill; key.Margin=new Padding(0,2,0,2); Controls.Add(key,5,0);
   key.AccessibleName=label+"のキー";
   key.Items.Add(new KeyChoice(0,"なし"));
   foreach(var code in Enum.GetValues<Keys>().Select(k=>(int)k).Where(k=>k>0 && k<256).Distinct().OrderBy(k=>k)) key.Items.Add(new KeyChoice(code,((Keys)code).ToString()));
