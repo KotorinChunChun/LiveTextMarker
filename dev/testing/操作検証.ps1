@@ -24,7 +24,7 @@ public static class PointerSmoke {
  public static bool Alpha(uint pid,byte expected) { bool valid=true; EnumWindows((h,d)=>{ GetWindowThreadProcessId(h,out var owner); if(owner==pid && IsWindowVisible(h) && (GetWindowLongPtr(h,-20).ToInt64()&0x20)!=0) { if(!GetLayeredWindowAttributes(h,out var key,out var alpha,out var flags)||alpha!=expected) valid=false; } return true; },IntPtr.Zero); return valid; }
 }
 '@
-$window = Wait-AppWindow -Title 'Pointer Underline'
+$window = Wait-AppWindow -Title 'LiveTextMarker'
 $root = [System.Windows.Automation.AutomationElement]::FromHandle($window)
 $appId = $root.Current.ProcessId
 [WUA.Win]::SetForegroundWindow($window) | Out-Null

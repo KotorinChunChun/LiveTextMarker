@@ -6,6 +6,6 @@ if (-not (Test-Path 'tessdata/jpn.traineddata') -or -not (Test-Path 'tessdata/en
 dotnet run --project tests/GeometryTests.csproj -c Release
 if ($LASTEXITCODE -ne 0) { throw 'Geometry tests failed.' }
 $selfContained = if ($FrameworkDependent) { 'false' } else { 'true' }
-dotnet publish PointerUnderline.csproj -c Release -r win-x64 --self-contained $selfContained -p:Platform=x64 -o out/PointerUnderline
+dotnet publish PointerUnderline.csproj -c Release -r win-x64 --self-contained $selfContained -p:Platform=x64 -o out/LiveTextMarker
 if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
-Write-Host 'Built: out/PointerUnderline/PointerUnderline.exe. Run the EXE with the entire folder beside it.'
+Write-Host 'Built: out/LiveTextMarker/LiveTextMarker.exe. Run the EXE with the entire folder beside it.'

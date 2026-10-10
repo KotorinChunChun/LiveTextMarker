@@ -1,11 +1,11 @@
-# Pointer Underline
+# LiveTextMarker
 
 Windows 10 / 11（64 bit）用。ポインタの位置にある文章を検出し、折り返しを含む各表示行の行頭から行末まで下線を表示するプレゼンテーション補助アプリです。
 
 ## 起動
 
 1. ZIPをすべて展開してください（ZIPの中から直接実行しないでください）。
-2. `app/PointerUnderline.exe` を起動してください。
+2. `app/LiveTextMarker.exe` を起動してください。
 3. 「開始 / Start」を押し、文字の上にポインタを移動してください。
 4. 発表中は「通知領域へ」で設定画面を隠せます。通知領域アイコンのダブルクリックで戻ります。
 
@@ -58,11 +58,11 @@ https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist
 ./Build.ps1
 ```
 
-出力は `out/PointerUnderline/PointerUnderline.exe` です。スクリプト実行が組織の方針で制限されている場合、方針を変更せず以下のコマンドを実行してください。
+出力は `out/LiveTextMarker/LiveTextMarker.exe` です。スクリプト実行が組織の方針で制限されている場合、方針を変更せず以下のコマンドを実行してください。
 
 ```powershell
 dotnet run --project tests/GeometryTests.csproj -c Release
-dotnet publish PointerUnderline.csproj -c Release -r win-x64 --self-contained true -p:Platform=x64 -o out/PointerUnderline
+dotnet publish PointerUnderline.csproj -c Release -r win-x64 --self-contained true -p:Platform=x64 -o out/LiveTextMarker
 ```
 
 ビルド時のみNuGetから依存パッケージとMicrosoftランタイムをダウンロードします。実行時はオフラインです。

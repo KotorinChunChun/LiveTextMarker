@@ -1,4 +1,4 @@
-# PointerUnderline の開発ルール
+# LiveTextMarker の開発ルール
 
 - 親フォルダの AGENTS.md に従う。PowerShell は pwsh を使用する。
 - 文書・コミットは日本語で残す。既存の source/ と app/ の構成を維持する。

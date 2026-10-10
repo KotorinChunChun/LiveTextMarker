@@ -1,4 +1,4 @@
-param([string]$Exe = "$PSScriptRoot/../../source/out/PointerUnderline/PointerUnderline.exe")
+param([string]$Exe = "$PSScriptRoot/../../source/out/LiveTextMarker/LiveTextMarker.exe")
 $ErrorActionPreference = 'Stop'
 . 'C:/Users/kotorichun/.codex/skills/windows-ui-automation/scripts/ui-toolkit.ps1'
 . "$PSScriptRoot/検証ウィンドウ共通.ps1"

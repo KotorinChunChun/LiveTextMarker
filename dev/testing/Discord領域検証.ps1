@@ -1,4 +1,4 @@
-param([string]$Exe="$PSScriptRoot/../../source/out/PointerUnderline/PointerUnderline.exe")
+param([string]$Exe="$PSScriptRoot/../../source/out/LiveTextMarker/LiveTextMarker.exe")
 $ErrorActionPreference='Stop'
 Add-Type -AssemblyName UIAutomationClient,UIAutomationTypes
 $root=[System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Children,[System.Windows.Automation.Condition]::TrueCondition) | Where-Object { (Get-Process -Id $_.Current.ProcessId -ErrorAction SilentlyContinue).ProcessName -eq 'Discord' } | Select-Object -First 1

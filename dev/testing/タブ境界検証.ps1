@@ -26,7 +26,7 @@ try {
  $root=[System.Windows.Automation.AutomationElement]::FromHandle($target)
  $tabs=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::TabItem))
  if($tabs.Count -ne 7){throw 'タブ構成の取得失敗'}
- $si=[Diagnostics.ProcessStartInfo]::new("$PSScriptRoot/../../source/out/PointerUnderline/PointerUnderline.exe",'--worker'); $si.UseShellExecute=$false; $si.CreateNoWindow=$true; $si.RedirectStandardInput=$true; $si.RedirectStandardOutput=$true; $worker=[Diagnostics.Process]::Start($si)
+ $si=[Diagnostics.ProcessStartInfo]::new("$PSScriptRoot/../../source/out/LiveTextMarker/LiveTextMarker.exe",'--worker'); $si.UseShellExecute=$false; $si.CreateNoWindow=$true; $si.RedirectStandardInput=$true; $si.RedirectStandardOutput=$true; $worker=[Diagnostics.Process]::Start($si)
  foreach($tab in $tabs) {
   $r=$tab.Current.BoundingRectangle; $x=[int]($r.X+$r.Width/2); $y=[int]($r.Y+$r.Height/2)
   $worker.StandardInput.WriteLine((@{Kind='uia';X=$x;Y=$y;TargetWindow=$target.ToInt64()} | ConvertTo-Json -Compress))
@@ -35,7 +35,7 @@ try {
  }
  'PASS: 7個のTabItemを個別の認識境界として取得'
  if($Live) {
-  $main=Wait-AppWindow -Title 'Pointer Underline'
+  $main=Wait-AppWindow -Title 'LiveTextMarker'
   [WUA.Win]::ShowWindow($main,5) | Out-Null
   if(-not (Save-WindowScreenshot -WindowHandle $main -Path "$PSScriptRoot/タブ検証-設定.png")){throw '設定画面の準備失敗'}
   $appRoot=[System.Windows.Automation.AutomationElement]::FromHandle($main); $appId=$appRoot.Current.ProcessId

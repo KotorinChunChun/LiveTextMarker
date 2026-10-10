@@ -25,7 +25,7 @@ function Query-Worker($request) {
  if(-not $answer.Wait(8000)) { throw '認識タイムアウト' }
  return $answer.Result | ConvertFrom-Json
 }
-$main=Wait-AppWindow -Title 'Pointer Underline'
+$main=Wait-AppWindow -Title 'LiveTextMarker'
 $appRoot=[System.Windows.Automation.AutomationElement]::FromHandle($main); $appId=$appRoot.Current.ProcessId
 Save-WindowScreenshot -WindowHandle $main -Path "$PSScriptRoot/境界検証-設定.png" | Out-Null
 $combo=$appRoot.FindFirst([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::ComboBox))
@@ -46,7 +46,7 @@ try {
  if($controls.Count -lt 2) { throw '検証用の左右フレームを取得できません' }
  $left=$controls[0]; $right=$controls[-1]
  $leftRect=$left.Current.BoundingRectangle; $rightRect=$right.Current.BoundingRectangle
- $launch=[System.Diagnostics.ProcessStartInfo]::new("$PSScriptRoot/../../app/PointerUnderline.exe",'--worker')
+ $launch=[System.Diagnostics.ProcessStartInfo]::new("$PSScriptRoot/../../app/LiveTextMarker.exe",'--worker')
  $launch.UseShellExecute=$false; $launch.CreateNoWindow=$true; $launch.RedirectStandardInput=$true; $launch.RedirectStandardOutput=$true
  $worker=[System.Diagnostics.Process]::Start($launch)
  foreach($rect in @($leftRect,$rightRect)) {

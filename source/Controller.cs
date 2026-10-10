@@ -42,7 +42,7 @@ internal sealed class Controller : Form
   thickness.Value=Math.Clamp(settings.Thickness,1,12); offset.Value=Math.Clamp(settings.Offset,-30,30); lineColor=Color.FromArgb(settings.Color);
   highlightColor=Color.FromArgb(settings.HighlightColor); opacity.Value=Math.Clamp(settings.HighlightOpacity,8,30);
   displayMode.Items.AddRange(new object[]{"下線","塗り"}); displayMode.SelectedIndex=settings.Highlight?1:0;
-  Text="Pointer Underline"; ClientSize=new Size(560,480); MinimumSize=new Size(550,490); StartPosition=FormStartPosition.CenterScreen;
+  Text="LiveTextMarker"; ClientSize=new Size(560,480); MinimumSize=new Size(550,490); StartPosition=FormStartPosition.CenterScreen;
   Font=new Font("Yu Gothic UI",10); AutoScaleMode=AutoScaleMode.Dpi;
   var layout=new TableLayoutPanel { Dock=DockStyle.Fill,ColumnCount=1,RowCount=10,Padding=new Padding(16) };
   layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
@@ -65,7 +65,7 @@ internal sealed class Controller : Form
   layout.Controls.Add(status,0,7); layout.Controls.Add(log,0,8);
   layout.Controls.Add(new Label { Text="直近10件 · 画像・本文はログに記録しません",AutoSize=true,ForeColor=Color.DimGray },0,9); Controls.Add(layout);
   var menu=new ContextMenuStrip(); menu.Items.Add("開始 / 一時停止",null,(_,_)=>SetEnabled(!enabled)); menu.Items.Add("設定を表示",null,(_,_)=>{ Show(); WindowState=FormWindowState.Normal; Activate(); }); menu.Items.Add("終了",null,(_,_)=>Close());
-  tray=new NotifyIcon { Icon=SystemIcons.Information,Text="Pointer Underline — 停止中",Visible=true,ContextMenuStrip=menu }; tray.DoubleClick+=(_,_)=>{ Show(); Activate(); };
+  tray=new NotifyIcon { Icon=SystemIcons.Information,Text="LiveTextMarker — 停止中",Visible=true,ContextMenuStrip=menu }; tray.DoubleClick+=(_,_)=>{ Show(); Activate(); };
   _=Handle; toggleHotkey=Native.RegisterHotKey(Handle,1,0x4003,0x55); quitHotkey=Native.RegisterHotKey(Handle,2,0x4003,0x51);
   if(!toggleHotkey||!quitHotkey) status.Text="ショートカットが他のアプリで使用されています。ボタンまたは通知領域を使ってください。";
   ocr.CheckedChanged+=(_,_)=> { generation++; Clear(); cachedImage=null; SaveSettings(); };
@@ -79,7 +79,7 @@ internal sealed class Controller : Form
  private void UpdateModeControls() { var fill=displayMode.SelectedIndex==1; thickness.Enabled=!fill; offset.Enabled=!fill; opacity.Enabled=fill; }
  private void SaveSettings() { try { new Settings(ctrlOnly.Checked,ocr.Checked,(int)thickness.Value,offset.Value,lineColor.ToArgb(),displayMode.SelectedIndex==1,(int)opacity.Value,highlightColor.ToArgb()).Save(); } catch(Exception ex) { AddLog("設定保存: "+ex.GetType().Name); } }
  private void AddLog(string message) { if(message==lastLog) return; lastLog=message; log.Items.Insert(0,$"{DateTime.Now:HH:mm:ss}  {message}"); while(log.Items.Count>10) log.Items.RemoveAt(log.Items.Count-1); }
- private void SetEnabled(bool value) { enabled=value; generation++; cachedImage=null; cachedOcr=null; Clear(); toggle.Text=value?"一時停止 / Pause":"開始 / Start"; tray.Text=value?"Pointer Underline — 追従中":"Pointer Underline — 停止中"; status.Text=Active?"追従中。文字の上にポインタを移動してください。":ctrlOnly.Checked?"Ctrl待機中":"一時停止中"; AddLog(value?"開始":"一時停止"); lastQuery=0; }
+ private void SetEnabled(bool value) { enabled=value; generation++; cachedImage=null; cachedOcr=null; Clear(); toggle.Text=value?"一時停止 / Pause":"開始 / Start"; tray.Text=value?"LiveTextMarker — 追従中":"LiveTextMarker — 停止中"; status.Text=Active?"追従中。文字の上にポインタを移動してください。":ctrlOnly.Checked?"Ctrl待機中":"一時停止中"; AddLog(value?"開始":"一時停止"); lastQuery=0; }
  private void Clear() { current=null; currentLines=Array.Empty<Box>(); currentScope=null; currentVisible=null; currentWindow=0; HideLines(); }
  private Box? VisibleScope(nint window,Box scope,Native.POINT point)=>WindowRegion.Visible(window,scope,point.X,point.Y,overlays.Where(o=>o.IsHandleCreated).Select(o=>o.Handle));
  private void HideLines() { foreach(var overlay in overlays) overlay.HideLine(); }
