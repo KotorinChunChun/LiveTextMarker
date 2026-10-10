@@ -32,12 +32,12 @@ Save-WindowScreenshot -WindowHandle $window -Path "$PSScriptRoot/設定画面.pn
 $display=$root.FindFirst([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::ComboBox))
 $display.SetFocus()
 [System.Windows.Forms.SendKeys]::SendWait($(if($Highlight){'{HOME}{DOWN}'}else{'{HOME}'}))
-$mode = Find-InWindow -WindowHandle $window -Name 'Ctrlを押している間だけ'
+$mode = Find-InWindow -WindowHandle $window -Name 'Ctrl押下で実行'
 if($mode.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern).Current.ToggleState -eq [System.Windows.Automation.ToggleState]::Off) {
  $point = Get-ElementCenter -Element $mode
  Invoke-Click -X $point[0] -Y $point[1]
 }
-$start = Find-InWindow -WindowHandle $window -Name '開始 / Start' -TimeoutMs 200
+$start = Find-InWindow -WindowHandle $window -Name '一時停止 / Pause' -TimeoutMs 200
 if($start) { $point=Get-ElementCenter -Element $start; Invoke-Click -X $point[0] -Y $point[1] }
 $arguments=@('-NoProfile','-STA','-File',"`"$PSScriptRoot/文章テスト画面.ps1`"")
 if($Dark) { $arguments+='-Dark' }
@@ -64,14 +64,35 @@ try {
  if($visible.Count -ne 3) { throw "Ctrl押下時の下線数が不正です: $($visible.Count)" }
  if(-not [PointerSmoke]::Alpha($appId,$(if($Highlight){41}else{255}))) { throw '描画の透明度が一致しません' }
  if($Highlight -and ($visible | Where-Object { $_.Bottom-$_.Top -lt 20 })) { throw '塗りの高さが文字範囲を覆っていません' }
- 'PASS: Ctrl押下中に3行を表示'
+  if(-not $Highlight -and @($visible | ForEach-Object { $_.Bottom-$_.Top } | Sort-Object -Unique).Count -ne 1){throw '行ごとの下線の太さが異なります'}
+ 'PASS: 開始操作なしのCtrl押下で3行を表示、下線の太さが一致'
  $visible | Sort-Object Top | Format-Table -AutoSize
  $captureName=if($Highlight){"塗りハイライト-$(if($Dark){'暗色'}else{'白'})"}else{'文章認識テスト'}
  if(-not (Save-WindowScreenshot -WindowHandle $fixtureWindow -Path "$PSScriptRoot/$captureName.png")) { throw '撮影に失敗しました' }
  [PointerSmoke]::keybd_event(0x11,0,2,[UIntPtr]::Zero); $held=$false
  Start-Sleep -Milliseconds 400
  if([PointerSmoke]::Lines($appId).Count -ne 0) { throw 'Ctrl解除後も下線が表示されています' }
- 'PASS: Ctrl解除で下線消去'
+  'PASS: 一時停止中のCtrl解除で消去'
+ function Toggle-Continuous {
+  [PointerSmoke]::keybd_event(0x11,0,0,[UIntPtr]::Zero)
+  [PointerSmoke]::keybd_event(0x12,0,0,[UIntPtr]::Zero)
+  [PointerSmoke]::keybd_event(0x55,0,0,[UIntPtr]::Zero)
+  [PointerSmoke]::keybd_event(0x55,0,2,[UIntPtr]::Zero)
+  [PointerSmoke]::keybd_event(0x12,0,2,[UIntPtr]::Zero)
+  [PointerSmoke]::keybd_event(0x11,0,2,[UIntPtr]::Zero)
+ }
+ Toggle-Continuous
+ Start-Sleep -Milliseconds 1200
+ if([PointerSmoke]::Lines($appId).Count -ne 3){throw 'Ctrl+Alt+Uで開始後にCtrlなしの表示が継続しません'}
+ 'PASS: Ctrl+Alt+Uで常時表示を開始し、Ctrl解除後も継続'
+ Toggle-Continuous
+ Start-Sleep -Milliseconds 400
+ if([PointerSmoke]::Lines($appId).Count -ne 0){throw 'Ctrl+Alt+Uで一時停止後に表示が残ります'}
+ [PointerSmoke]::keybd_event(0x11,0,0,[UIntPtr]::Zero); $held=$true
+ Start-Sleep -Milliseconds 1200
+ if([PointerSmoke]::Lines($appId).Count -ne 3){throw '一時停止後のCtrl押下が動きません'}
+ 'PASS: ショートカットで一時停止した後もCtrl押下で実行'
+ [PointerSmoke]::keybd_event(0x11,0,2,[UIntPtr]::Zero); $held=$false
 } finally {
  if($held) { [PointerSmoke]::keybd_event(0x11,0,2,[UIntPtr]::Zero) }
  $fixture.Refresh()

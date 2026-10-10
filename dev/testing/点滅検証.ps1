@@ -39,7 +39,7 @@ Save-WindowScreenshot -WindowHandle $main -Path "$PSScriptRoot/点滅検証-設�
 $display=$appRoot.FindFirst([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::ComboBox))
 $display.SetFocus()
 [System.Windows.Forms.SendKeys]::SendWait($(if($Highlight){'{HOME}{DOWN}'}else{'{HOME}'}))
-$start=Find-InWindow -WindowHandle $main -Name '開始 / Start' -TimeoutMs 200
+$start=Find-InWindow -WindowHandle $main -Name '一時停止 / Pause' -TimeoutMs 200
 if($start) { $p=Get-ElementCenter -Element $start; Invoke-Click -X $p[0] -Y $p[1] }
 $arguments=@('-NoProfile','-STA','-File',"`"$PSScriptRoot/文章テスト画面.ps1`"")
 if($Ocr) { $arguments+='-Ocr' }

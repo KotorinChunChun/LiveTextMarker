@@ -10,7 +10,7 @@ internal sealed class Controller : Form
  private readonly NotifyIcon tray;
  private readonly Button toggle=new() { Text="開始 / Start", AutoSize=true };
  private readonly CheckBox ocr=new() { Text="画像・スライドにも対応（ローカルOCR）",Checked=true,AutoSize=true };
- private readonly CheckBox ctrlOnly=new() { Text="Ctrlを押している間だけ",AutoSize=true };
+ private readonly CheckBox ctrlOnly=new() { Text="Ctrl押下で実行",AutoSize=true };
  private readonly NumericUpDown thickness=new() { Minimum=1,Maximum=12,Value=3,Width=65 };
  private readonly NumericUpDown offset=new() { Minimum=-30,Maximum=30,Value=-2,DecimalPlaces=1,Increment=0.5m,Width=75 };
  private readonly ComboBox displayMode=new() { DropDownStyle=ComboBoxStyle.DropDownList,Width=100,AccessibleName="表示方法" };
@@ -69,7 +69,7 @@ internal sealed class Controller : Form
   _=Handle; toggleHotkey=Native.RegisterHotKey(Handle,1,0x4003,0x55); quitHotkey=Native.RegisterHotKey(Handle,2,0x4003,0x51);
   if(!toggleHotkey||!quitHotkey) status.Text="ショートカットが他のアプリで使用されています。ボタンまたは通知領域を使ってください。";
   ocr.CheckedChanged+=(_,_)=> { generation++; Clear(); cachedImage=null; SaveSettings(); };
-  ctrlOnly.CheckedChanged+=(_,_)=> { generation++; Clear(); SaveSettings(); AddLog(ctrlOnly.Checked?"Ctrlモード":"常時モード"); };
+  ctrlOnly.CheckedChanged+=(_,_)=> { generation++; Clear(); SaveSettings(); status.Text=Active?"追従中":ctrlOnly.Checked?"Ctrl待機中":"一時停止中"; AddLog(ctrlOnly.Checked?"Ctrl押下を有効化":"Ctrl押下を無効化"); };
   thickness.ValueChanged+=(_,_)=> { Clear(); SaveSettings(); }; offset.ValueChanged+=(_,_)=> { Clear(); SaveSettings(); };
   displayMode.SelectedIndexChanged+=(_,_)=> { generation++; Clear(); UpdateModeControls(); SaveSettings(); AddLog("表示方法 · "+displayMode.Text); };
   opacity.ValueChanged+=(_,_)=> { Clear(); SaveSettings(); };
@@ -79,7 +79,7 @@ internal sealed class Controller : Form
  private void UpdateModeControls() { var fill=displayMode.SelectedIndex==1; thickness.Enabled=!fill; offset.Enabled=!fill; opacity.Enabled=fill; }
  private void SaveSettings() { try { new Settings(ctrlOnly.Checked,ocr.Checked,(int)thickness.Value,offset.Value,lineColor.ToArgb(),displayMode.SelectedIndex==1,(int)opacity.Value,highlightColor.ToArgb()).Save(); } catch(Exception ex) { AddLog("設定保存: "+ex.GetType().Name); } }
  private void AddLog(string message) { if(message==lastLog) return; lastLog=message; log.Items.Insert(0,$"{DateTime.Now:HH:mm:ss}  {message}"); while(log.Items.Count>10) log.Items.RemoveAt(log.Items.Count-1); }
- private void SetEnabled(bool value) { enabled=value; generation++; cachedImage=null; cachedOcr=null; Clear(); toggle.Text=value?"一時停止 / Pause":"開始 / Start"; tray.Text=value?"Pointer Underline — 追従中":"Pointer Underline — 停止中"; status.Text=value?(Active?"追従中。文字の上にポインタを移動してください。":"Ctrl待機中"):"一時停止中"; AddLog(value?"開始":"一時停止"); lastQuery=0; }
+ private void SetEnabled(bool value) { enabled=value; generation++; cachedImage=null; cachedOcr=null; Clear(); toggle.Text=value?"一時停止 / Pause":"開始 / Start"; tray.Text=value?"Pointer Underline — 追従中":"Pointer Underline — 停止中"; status.Text=Active?"追従中。文字の上にポインタを移動してください。":ctrlOnly.Checked?"Ctrl待機中":"一時停止中"; AddLog(value?"開始":"一時停止"); lastQuery=0; }
  private void Clear() { current=null; currentLines=Array.Empty<Box>(); currentScope=null; currentVisible=null; currentWindow=0; HideLines(); }
  private Box? VisibleScope(nint window,Box scope,Native.POINT point)=>WindowRegion.Visible(window,scope,point.X,point.Y,overlays.Where(o=>o.IsHandleCreated).Select(o=>o.Handle));
  private void HideLines() { foreach(var overlay in overlays) overlay.HideLine(); }
@@ -87,7 +87,7 @@ internal sealed class Controller : Form
  private async void Tick(object? sender,EventArgs args)
  {
   var active=Active;
-  if(active!=wasActive) { wasActive=active; generation++; Clear(); cachedImage=null; lastQuery=0; if(enabled) { status.Text=active?"追従中":"Ctrl待機中"; AddLog(status.Text); } }
+  if(active!=wasActive) { wasActive=active; generation++; Clear(); cachedImage=null; lastQuery=0; status.Text=active?"追従中":ctrlOnly.Checked?"Ctrl待機中":"一時停止中"; AddLog(status.Text); }
   if(closing||!active||!Native.GetCursorPos(out var point)) return;
   var now=Environment.TickCount64;
   var foreground=Native.GetForegroundWindow();

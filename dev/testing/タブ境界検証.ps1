@@ -43,7 +43,7 @@ try {
   $drawn=0
   foreach($mode in @('下線','塗り')) {
    $combo.SetFocus(); [System.Windows.Forms.SendKeys]::SendWait($(if($mode -eq '塗り'){'{HOME}{DOWN}'}else{'{HOME}'}))
-   $start=Find-InWindow -WindowHandle $main -Name '開始 / Start' -TimeoutMs 200
+   $start=Find-InWindow -WindowHandle $main -Name '一時停止 / Pause' -TimeoutMs 200
    if($start){$p=Get-ElementCenter -Element $start; Invoke-Click -X $p[0] -Y $p[1]}
    [WUA.Win]::SetForegroundWindow($target) | Out-Null
    foreach($tab in $tabs) {

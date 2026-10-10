@@ -30,7 +30,7 @@ $appRoot=[System.Windows.Automation.AutomationElement]::FromHandle($main); $appI
 Save-WindowScreenshot -WindowHandle $main -Path "$PSScriptRoot/境界検証-設定.png" | Out-Null
 $combo=$appRoot.FindFirst([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::ComboBox))
 $combo.SetFocus(); [System.Windows.Forms.SendKeys]::SendWait($(if($Highlight){'{HOME}{DOWN}'}else{'{HOME}'}))
-$start=Find-InWindow -WindowHandle $main -Name '開始 / Start' -TimeoutMs 200
+$start=Find-InWindow -WindowHandle $main -Name '一時停止 / Pause' -TimeoutMs 200
 if($start) { $p=Get-ElementCenter -Element $start; Invoke-Click -X $p[0] -Y $p[1] }
 $arguments=@('-NoProfile','-STA','-File',"`"$PSScriptRoot/境界テスト画面.ps1`"")
 if($Ocr) { $arguments+='-Ocr' }

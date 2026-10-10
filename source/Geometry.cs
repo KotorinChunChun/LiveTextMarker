@@ -20,7 +20,13 @@ public static class Geometry
   }
   return rows.OrderBy(b=>b.Y).ThenBy(b=>b.X).ToArray();
  }
- public static Box Underline(Box text, Box screen, double scale, int thickness, double offset) => new Box(text.X,text.Bottom+offset*scale,text.Width,Math.Max(1,thickness*scale)).Intersect(screen);
+ public static Box Underline(Box text, Box screen, double scale, int thickness, double offset) {
+  var height=Math.Max(1,Math.Round(thickness*scale,MidpointRounding.AwayFromZero));
+  var top=Math.Ceiling(screen.Y); var bottom=Math.Floor(screen.Bottom);
+  if(bottom-top<height) return default;
+  var y=Math.Clamp(Math.Round(text.Bottom+offset*scale,MidpointRounding.AwayFromZero),top,bottom-height);
+  return new Box(text.X,y,text.Width,height).Intersect(screen);
+ }
  public static Box Highlight(Box text,Box screen)=>text.Intersect(screen);
  public static byte HighlightAlpha(int percent)=>(byte)Math.Round(Math.Clamp(percent,8,30)*255/100.0,MidpointRounding.AwayFromZero);
  public static Box[] ClipRows(IEnumerable<Box> rows,Box scope)=>rows.Select(b=>b.Intersect(scope)).Where(b=>b.Valid).ToArray();
@@ -47,5 +53,5 @@ public static class DetectionGate
 }
 public static class ActivationGate
 {
- public static bool Active(bool enabled,bool ctrlOnly,bool ctrlDown)=>enabled && (!ctrlOnly || ctrlDown);
+ public static bool Active(bool enabled,bool ctrlOnly,bool ctrlDown)=>enabled || (ctrlOnly && ctrlDown);
 }
