@@ -13,6 +13,8 @@ internal sealed class Controller : Form
  private readonly CheckBox ctrlOnly=new() { Text="Ctrlを押している間だけ",AutoSize=true };
  private readonly NumericUpDown thickness=new() { Minimum=1,Maximum=12,Value=3,Width=65 };
  private readonly NumericUpDown offset=new() { Minimum=-30,Maximum=30,Value=-2,DecimalPlaces=1,Increment=0.5m,Width=75 };
+ private readonly ComboBox displayMode=new() { DropDownStyle=ComboBoxStyle.DropDownList,Width=100,AccessibleName="表示方法" };
+ private readonly NumericUpDown opacity=new() { Minimum=8,Maximum=30,Value=16,Width=65,AccessibleName="濃さ" };
  private readonly ListBox log=new() { Dock=DockStyle.Fill, IntegralHeight=false, HorizontalScrollbar=true };
  private readonly ToolTip tips=new();
  private bool wasActive;
@@ -20,6 +22,7 @@ internal sealed class Controller : Form
  private bool Active=>ActivationGate.Active(enabled,ctrlOnly.Checked,(Native.GetAsyncKeyState(0x11)&0x8000)!=0);
  private readonly Label status=new() { Text="待機中。開始ボタンで追従を開始します。",AutoSize=true,MaximumSize=new Size(475,0) };
  private Color lineColor=Color.FromArgb(239,45,56);
+ private Color highlightColor=Color.Gold;
  private bool enabled,busy,closing;
  private Box? current;
  private Box[] currentLines=Array.Empty<Box>();
@@ -35,24 +38,30 @@ internal sealed class Controller : Form
  {
   var settings=Settings.Load(); ctrlOnly.Checked=settings.CtrlOnly; ocr.Checked=settings.Ocr;
   thickness.Value=Math.Clamp(settings.Thickness,1,12); offset.Value=Math.Clamp(settings.Offset,-30,30); lineColor=Color.FromArgb(settings.Color);
-  Text="Pointer Underline"; ClientSize=new Size(560,440); MinimumSize=new Size(550,450); StartPosition=FormStartPosition.CenterScreen;
+  highlightColor=Color.FromArgb(settings.HighlightColor); opacity.Value=Math.Clamp(settings.HighlightOpacity,8,30);
+  displayMode.Items.AddRange(new object[]{"下線","塗り"}); displayMode.SelectedIndex=settings.Highlight?1:0;
+  Text="Pointer Underline"; ClientSize=new Size(560,480); MinimumSize=new Size(550,490); StartPosition=FormStartPosition.CenterScreen;
   Font=new Font("Yu Gothic UI",10); AutoScaleMode=AutoScaleMode.Dpi;
-  var layout=new TableLayoutPanel { Dock=DockStyle.Fill,ColumnCount=1,RowCount=9,Padding=new Padding(16) };
+  var layout=new TableLayoutPanel { Dock=DockStyle.Fill,ColumnCount=1,RowCount=10,Padding=new Padding(16) };
   layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
-  for(int i=0;i<9;i++) layout.RowStyles.Add(new RowStyle(i==7?SizeType.Percent:SizeType.AutoSize,i==7?100:0));
-  layout.Controls.Add(new Label { Text="ポインタの文章に下線",Font=new Font(Font.FontFamily,16,FontStyle.Bold),AutoSize=true },0,0);
+  for(int i=0;i<10;i++) layout.RowStyles.Add(new RowStyle(i==8?SizeType.Percent:SizeType.AutoSize,i==8?100:0));
+  layout.Controls.Add(new Label { Text="ポインタの文章を強調",Font=new Font(Font.FontFamily,16,FontStyle.Bold),AutoSize=true },0,0);
   layout.Controls.Add(new Label { Text="Ctrl + Alt + U：開始 / 一時停止　 Ctrl + Alt + Q：終了",AutoSize=true,Margin=new Padding(3,8,3,8) },0,1);
   layout.Controls.Add(ocr,0,2); layout.Controls.Add(ctrlOnly,0,3);
+  var modes=new FlowLayoutPanel { AutoSize=true,WrapContents=false };
+  modes.Controls.Add(new Label { Text="表示方法",AutoSize=true,Margin=new Padding(0,7,3,0) }); modes.Controls.Add(displayMode);
+  modes.Controls.Add(new Label { Text="濃さ（%）",AutoSize=true,Margin=new Padding(14,7,3,0) }); modes.Controls.Add(opacity); layout.Controls.Add(modes,0,4);
+  tips.SetToolTip(opacity,"塗りの不透明度。文字を透かして読むため8～30%に制限しています。");
   var options=new FlowLayoutPanel { AutoSize=true,WrapContents=false };
   options.Controls.Add(new Label { Text="太さ",AutoSize=true,Margin=new Padding(0,7,3,0) }); options.Controls.Add(thickness);
   options.Controls.Add(new Label { Text="上下位置",AutoSize=true,Margin=new Padding(14,7,3,0) }); options.Controls.Add(offset);
   tips.SetToolTip(offset,"文字範囲の下端からの距離。負の値で上、正の値で下へ移動します（96 DPI基準）。");
-  var color=new Button { Text="色を選ぶ",AutoSize=true }; color.Click+=(_,_)=> { using var d=new ColorDialog { Color=lineColor }; if(d.ShowDialog(this)==DialogResult.OK) { lineColor=d.Color; Clear(); SaveSettings(); } }; options.Controls.Add(color); layout.Controls.Add(options,0,4);
+  var color=new Button { Text="色を選ぶ",AutoSize=true }; color.Click+=(_,_)=> { using var d=new ColorDialog { Color=displayMode.SelectedIndex==1?highlightColor:lineColor }; if(d.ShowDialog(this)==DialogResult.OK) { if(displayMode.SelectedIndex==1) highlightColor=d.Color; else lineColor=d.Color; Clear(); SaveSettings(); } }; options.Controls.Add(color); layout.Controls.Add(options,0,5);
   var buttons=new FlowLayoutPanel { AutoSize=true,WrapContents=false }; toggle.Click+=(_,_)=>SetEnabled(!enabled); buttons.Controls.Add(toggle);
   var minimize=new Button { Text="通知領域へ",AutoSize=true }; minimize.Click+=(_,_)=>Hide(); buttons.Controls.Add(minimize);
-  var quit=new Button { Text="終了",AutoSize=true }; quit.Click+=(_,_)=>Close(); buttons.Controls.Add(quit); layout.Controls.Add(buttons,0,5);
-  layout.Controls.Add(status,0,6); layout.Controls.Add(log,0,7);
-  layout.Controls.Add(new Label { Text="直近10件 · 画像・本文はログに記録しません",AutoSize=true,ForeColor=Color.DimGray },0,8); Controls.Add(layout);
+  var quit=new Button { Text="終了",AutoSize=true }; quit.Click+=(_,_)=>Close(); buttons.Controls.Add(quit); layout.Controls.Add(buttons,0,6);
+  layout.Controls.Add(status,0,7); layout.Controls.Add(log,0,8);
+  layout.Controls.Add(new Label { Text="直近10件 · 画像・本文はログに記録しません",AutoSize=true,ForeColor=Color.DimGray },0,9); Controls.Add(layout);
   var menu=new ContextMenuStrip(); menu.Items.Add("開始 / 一時停止",null,(_,_)=>SetEnabled(!enabled)); menu.Items.Add("設定を表示",null,(_,_)=>{ Show(); WindowState=FormWindowState.Normal; Activate(); }); menu.Items.Add("終了",null,(_,_)=>Close());
   tray=new NotifyIcon { Icon=SystemIcons.Information,Text="Pointer Underline — 停止中",Visible=true,ContextMenuStrip=menu }; tray.DoubleClick+=(_,_)=>{ Show(); Activate(); };
   _=Handle; toggleHotkey=Native.RegisterHotKey(Handle,1,0x4003,0x55); quitHotkey=Native.RegisterHotKey(Handle,2,0x4003,0x51);
@@ -60,9 +69,13 @@ internal sealed class Controller : Form
   ocr.CheckedChanged+=(_,_)=> { generation++; Clear(); cachedImage=null; SaveSettings(); };
   ctrlOnly.CheckedChanged+=(_,_)=> { generation++; Clear(); SaveSettings(); AddLog(ctrlOnly.Checked?"Ctrlモード":"常時モード"); };
   thickness.ValueChanged+=(_,_)=> { Clear(); SaveSettings(); }; offset.ValueChanged+=(_,_)=> { Clear(); SaveSettings(); };
+  displayMode.SelectedIndexChanged+=(_,_)=> { generation++; Clear(); UpdateModeControls(); SaveSettings(); AddLog("表示方法 · "+displayMode.Text); };
+  opacity.ValueChanged+=(_,_)=> { Clear(); SaveSettings(); };
+  UpdateModeControls();
   timer.Tick+=Tick; timer.Start();
  }
- private void SaveSettings() { try { new Settings(ctrlOnly.Checked,ocr.Checked,(int)thickness.Value,offset.Value,lineColor.ToArgb()).Save(); } catch(Exception ex) { AddLog("設定保存: "+ex.GetType().Name); } }
+ private void UpdateModeControls() { var fill=displayMode.SelectedIndex==1; thickness.Enabled=!fill; offset.Enabled=!fill; opacity.Enabled=fill; }
+ private void SaveSettings() { try { new Settings(ctrlOnly.Checked,ocr.Checked,(int)thickness.Value,offset.Value,lineColor.ToArgb(),displayMode.SelectedIndex==1,(int)opacity.Value,highlightColor.ToArgb()).Save(); } catch(Exception ex) { AddLog("設定保存: "+ex.GetType().Name); } }
  private void AddLog(string message) { if(message==lastLog) return; lastLog=message; log.Items.Insert(0,$"{DateTime.Now:HH:mm:ss}  {message}"); while(log.Items.Count>10) log.Items.RemoveAt(log.Items.Count-1); }
  private void SetEnabled(bool value) { enabled=value; generation++; cachedImage=null; cachedOcr=null; Clear(); toggle.Text=value?"一時停止 / Pause":"開始 / Start"; tray.Text=value?"Pointer Underline — 追従中":"Pointer Underline — 停止中"; status.Text=value?(Active?"追従中。文字の上にポインタを移動してください。":"Ctrl待機中"):"一時停止中"; AddLog(value?"開始":"一時停止"); lastQuery=0; }
  private void Clear() { current=null; currentLines=Array.Empty<Box>(); HideLines(); }
@@ -128,8 +141,10 @@ internal sealed class Controller : Form
   while(overlays.Count<lines.Length) overlays.Add(new Overlay());
   for(int i=0;i<overlays.Count;i++) {
    if(i>=lines.Length) { overlays[i].HideLine(); continue; }
-   var line=Geometry.Underline(lines[i],new Box(s.X,s.Y,s.Width,s.Height),Native.Scale(point),(int)thickness.Value,(double)offset.Value);
-   if(line.Width>0&&line.Height>0) overlays[i].Draw(line,lineColor); else overlays[i].HideLine();
+   var screen=new Box(s.X,s.Y,s.Width,s.Height);
+   var fill=displayMode.SelectedIndex==1;
+   var line=fill?Geometry.Highlight(lines[i],screen):Geometry.Underline(lines[i],screen,Native.Scale(point),(int)thickness.Value,(double)offset.Value);
+   if(line.Width>0&&line.Height>0) overlays[i].Draw(line,fill?highlightColor:lineColor,fill?Geometry.HighlightAlpha((int)opacity.Value):(byte)255); else overlays[i].HideLine();
   }
  }
  protected override void OnFormClosing(FormClosingEventArgs e) { SaveSettings(); closing=true; enabled=false; generation++; timer.Stop(); Native.UnregisterHotKey(Handle,1); Native.UnregisterHotKey(Handle,2); worker.Dispose(); foreach(var overlay in overlays) overlay.Dispose(); tray.Visible=false; tray.Dispose(); timer.Dispose(); tips.Dispose(); base.OnFormClosing(e); }

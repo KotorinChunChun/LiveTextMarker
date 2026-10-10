@@ -32,4 +32,8 @@ Check(!ActivationGate.Active(false,false,true),"stopped while Ctrl held");
 Check(ActivationGate.Active(true,false,false),"continuous mode without Ctrl");
 Check(!ActivationGate.Active(true,true,false),"Ctrl mode hides after release");
 Check(ActivationGate.Active(true,true,true),"Ctrl mode active while held");
+Check(Geometry.Highlight(new Box(-10,20,120,30),new Box(0,0,100,100))==new Box(0,20,100,30),"highlight covers text and clips to monitor");
+Check(Geometry.HighlightAlpha(16)==41,"default highlight remains 84 percent transparent");
+Check(Geometry.HighlightAlpha(100)==77,"prevent fully opaque highlight");
+Check(Geometry.HighlightAlpha(0)==20,"minimum visible highlight");
 Console.WriteLine($"{passed} checks passed.");

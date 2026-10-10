@@ -1,6 +1,6 @@
 using System.Text.Json;
 namespace PointerUnderline;
-internal sealed record Settings(bool CtrlOnly=false, bool Ocr=true, int Thickness=3, decimal Offset=-2, int Color=-1102536)
+internal sealed record Settings(bool CtrlOnly=false, bool Ocr=true, int Thickness=3, decimal Offset=-2, int Color=-1102536, bool Highlight=false, int HighlightOpacity=16, int HighlightColor=-10496)
 {
  private static string FilePath=>Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"PointerUnderline","settings.json");
  public static Settings Load() {

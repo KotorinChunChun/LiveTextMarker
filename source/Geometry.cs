@@ -21,6 +21,8 @@ public static class Geometry
   return rows.OrderBy(b=>b.Y).ThenBy(b=>b.X).ToArray();
  }
  public static Box Underline(Box text, Box screen, double scale, int thickness, double offset) => new Box(text.X,text.Bottom+offset*scale,text.Width,Math.Max(1,thickness*scale)).Intersect(screen);
+ public static Box Highlight(Box text,Box screen)=>text.Intersect(screen);
+ public static byte HighlightAlpha(int percent)=>(byte)Math.Round(Math.Clamp(percent,8,30)*255/100.0,MidpointRounding.AwayFromZero);
 }
 public sealed record Request(string Kind, int X, int Y, string? Image = null, int OriginX = 0, int OriginY = 0);
 public sealed record Detection(Box? Bounds = null, string Source = "", string? Error = null, bool Sensitive = false, Box[]? Lines = null);
