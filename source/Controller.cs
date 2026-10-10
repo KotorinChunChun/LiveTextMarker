@@ -66,7 +66,7 @@ internal sealed class Controller : Form
  private void AddLog(string message) { if(message==lastLog) return; lastLog=message; log.Items.Insert(0,$"{DateTime.Now:HH:mm:ss}  {message}"); while(log.Items.Count>10) log.Items.RemoveAt(log.Items.Count-1); }
  private void SetEnabled(bool value) { enabled=value; generation++; cachedImage=null; cachedOcr=null; Clear(); toggle.Text=value?"一時停止 / Pause":"開始 / Start"; tray.Text=value?"Pointer Underline — 追従中":"Pointer Underline — 停止中"; status.Text=value?(Active?"追従中。文字の上にポインタを移動してください。":"Ctrl待機中"):"一時停止中"; AddLog(value?"開始":"一時停止"); lastQuery=0; }
  private void Clear() { current=null; currentLines=Array.Empty<Box>(); HideLines(); }
- private void HideLines() { foreach(var overlay in overlays) overlay.Hide(); }
+ private void HideLines() { foreach(var overlay in overlays) overlay.HideLine(); }
  protected override void WndProc(ref Message m) { if(m.Msg==0x0312) { if(m.WParam==(nint)1) SetEnabled(!enabled); else if(m.WParam==(nint)2) Close(); } base.WndProc(ref m); }
  private async void Tick(object? sender,EventArgs args)
  {
@@ -92,11 +92,24 @@ internal sealed class Controller : Form
     var screen=Screen.FromPoint(new Point(point.X,point.Y)).Bounds;
     int cropHeight=Math.Min(screen.Height,Math.Max(180,(int)(240*Native.Scale(point))));
     var crop=new Rectangle(screen.Left,Math.Clamp(point.Y-cropHeight/2,screen.Top,screen.Bottom-cropHeight),screen.Width,cropHeight);
-    var wasVisible=overlays.Any(o=>o.Visible);
-    HideLines(); Native.DwmFlush();
+    var visible=overlays.Where(o=>o.Displayed).ToArray();
+    var excluded=new List<Overlay>();
+    var hidden=new List<Overlay>();
     string image;
-    try { using var bitmap=new Bitmap(crop.Width,crop.Height,PixelFormat.Format24bppRgb); using(var graphics=Graphics.FromImage(bitmap)) graphics.CopyFromScreen(crop.Location,Point.Empty,crop.Size,CopyPixelOperation.SourceCopy); using var stream=new MemoryStream(); bitmap.Save(stream,ImageFormat.Png); image=Convert.ToBase64String(stream.ToArray()); }
-    finally { if(wasVisible&&current is {} old&&Active) ShowLine(old,point); }
+    try {
+     foreach(var overlay in visible) {
+      if(overlay.ExcludeFromCapture()) excluded.Add(overlay);
+      else { overlay.HideLine(); hidden.Add(overlay); }
+     }
+     if(visible.Length>0) Native.DwmFlush();
+     using var bitmap=new Bitmap(crop.Width,crop.Height,PixelFormat.Format24bppRgb);
+     using(var graphics=Graphics.FromImage(bitmap)) graphics.CopyFromScreen(crop.Location,Point.Empty,crop.Size,CopyPixelOperation.SourceCopy);
+     using var stream=new MemoryStream(); bitmap.Save(stream,ImageFormat.Png); image=Convert.ToBase64String(stream.ToArray());
+    }
+    finally {
+     foreach(var overlay in excluded) overlay.RestoreCapture();
+     if(hidden.Count>0 && current is {} old && Active) { ShowLine(old,point); AddLog("OCR撮影 · 互換モード（下線を一時非表示）"); }
+    }
     if(image==cachedImage&&crop==cachedCrop&&cachedOcr!=null) result=cachedOcr;
     else { result=await worker.Query(new Request("ocr",point.X,point.Y,image,crop.X,crop.Y),2500); cachedImage=result.Error==null?image:null; cachedCrop=crop; cachedOcr=result; }
    }
@@ -114,9 +127,9 @@ internal sealed class Controller : Form
   var lines=currentLines.Length>0?currentLines:new[]{box};
   while(overlays.Count<lines.Length) overlays.Add(new Overlay());
   for(int i=0;i<overlays.Count;i++) {
-   if(i>=lines.Length) { overlays[i].Hide(); continue; }
+   if(i>=lines.Length) { overlays[i].HideLine(); continue; }
    var line=Geometry.Underline(lines[i],new Box(s.X,s.Y,s.Width,s.Height),Native.Scale(point),(int)thickness.Value,(double)offset.Value);
-   if(line.Width>0&&line.Height>0) overlays[i].Draw(line,lineColor); else overlays[i].Hide();
+   if(line.Width>0&&line.Height>0) overlays[i].Draw(line,lineColor); else overlays[i].HideLine();
   }
  }
  protected override void OnFormClosing(FormClosingEventArgs e) { SaveSettings(); closing=true; enabled=false; generation++; timer.Stop(); Native.UnregisterHotKey(Handle,1); Native.UnregisterHotKey(Handle,2); worker.Dispose(); foreach(var overlay in overlays) overlay.Dispose(); tray.Visible=false; tray.Dispose(); timer.Dispose(); tips.Dispose(); base.OnFormClosing(e); }
