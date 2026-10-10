@@ -46,4 +46,8 @@ Check(Geometry.VisibleRegion(frame,new[]{new Box(400,100,100,200)},150,130)==fra
 Check(Geometry.VisibleRegion(frame,new[]{new Box(299,100,1,200)},150,130)?.Right==299,"exclude even one pixel overlap");
 Check(Geometry.VisibleRegion(frame,new[]{new Box(300,90,100,300),new Box(50,90,100,300)},200,130)==new Box(150,100,150,200),"exclude windows on both sides");
 Check(Geometry.VisibleRegion(frame,Array.Empty<Box>(),500,130)==null,"reject pointer outside frame");
+var messageScope=new Box(460,140,260,38);
+var discordRows=Geometry.ClipRows(new[]{new Box(690,120,30,18),new Box(460,140,250,18),new Box(460,158,80,18),new Box(60,140,280,18),new Box(460,205,470,18)},messageScope);
+Check(discordRows.Length==2,"Discord paragraph excludes timestamp, sidebar and input field");
+Check(discordRows[1]==new Box(460,158,80,18),"Discord message keeps final wrapped line");
 Console.WriteLine($"{passed} checks passed.");

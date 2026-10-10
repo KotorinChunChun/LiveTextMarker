@@ -12,7 +12,9 @@ internal sealed class Detector : IDisposable
   try {
    var element=AutomationElement.FromPoint(new System.Windows.Point(x,y));
    var target=(nint)request.TargetWindow;
-   if(target==0) target=Native.GetAncestor(Native.WindowFromPoint(new Native.POINT { X=x,Y=y }),2);
+   var pointedWindow=Native.GetAncestor(Native.WindowFromPoint(new Native.POINT { X=x,Y=y }),2);
+   if(target==0) target=pointedWindow;
+   if(target!=pointedWindow) return new(Error:"対象ウィンドウが変わりました。");
    Native.GetWindowThreadProcessId(target,out var targetPid);
    if(element.Current.ProcessId!=(int)targetPid) return new(Error:"対象ウィンドウが変わりました。");
    var node=element;
@@ -20,7 +22,7 @@ internal sealed class Detector : IDisposable
     if(node.Current.ProcessId!=(int)targetPid) break;
     if(node.Current.IsPassword) return new(Sensitive:true);
     var type=node.Current.ControlType;
-    bool frame=type==ControlType.Document || type==ControlType.Edit || type==ControlType.Pane || type==ControlType.Group || type==ControlType.List || type==ControlType.DataGrid || type==ControlType.Table || type==ControlType.Tree || type==ControlType.Image || type==ControlType.Window;
+    bool frame=type==ControlType.Text || type==ControlType.Button || type==ControlType.Hyperlink || type==ControlType.ListItem || type==ControlType.TreeItem || type==ControlType.Document || type==ControlType.Edit || type==ControlType.Pane || type==ControlType.Group || type==ControlType.List || type==ControlType.DataGrid || type==ControlType.Table || type==ControlType.Tree || type==ControlType.Image || type==ControlType.Window;
     var r=node.Current.BoundingRectangle;
     var box=new Box(r.X,r.Y,r.Width,r.Height);
     if(frame && box.Contains(x,y,0)) { scope=box; scopeId=string.Join("-",node.GetRuntimeId()); break; }
@@ -33,7 +35,10 @@ internal sealed class Detector : IDisposable
     if(element.Current.ProcessId!=(int)targetPid) break;
     if(element.Current.IsPassword) return new(Sensitive:true);
     if(element.Current.ProcessId==Environment.ProcessId) continue;
-    if(!element.TryGetCurrentPattern(TextPattern.Pattern,out var pattern)) continue;
+    if(!element.TryGetCurrentPattern(TextPattern.Pattern,out var pattern)) {
+     if(string.Join("-",element.GetRuntimeId())==scopeId) break;
+     continue;
+    }
     var range=((TextPattern)pattern).RangeFromPoint(new System.Windows.Point(x,y));
     var line=range.Clone(); line.ExpandToEnclosingUnit(TextUnit.Line);
     range.ExpandToEnclosingUnit(TextUnit.Paragraph);
