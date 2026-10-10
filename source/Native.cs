@@ -4,6 +4,7 @@ internal static class Native
 {
  [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X,Y; }
  [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT p);
+ [DllImport("user32.dll")] public static extern short GetAsyncKeyState(int key);
  [DllImport("user32.dll")] public static extern nint WindowFromPoint(POINT p);
  [DllImport("user32.dll")] public static extern nint GetAncestor(nint h,uint flags);
  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(nint h,out uint id);

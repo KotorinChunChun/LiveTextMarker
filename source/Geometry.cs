@@ -29,3 +29,7 @@ public static class DetectionGate
  public static bool Accept(Box? bounds, bool enabled, bool closing, int requestGeneration, int currentGeneration, long sourceWindow, long liveWindow, long sourceForeground, long liveForeground, double x, double y, double requestY, double scale) =>
   enabled && !closing && requestGeneration==currentGeneration && sourceWindow==liveWindow && sourceForeground==liveForeground && bounds is {} box && box.Contains(x,y) && Math.Abs(y-requestY)<12*scale;
 }
+public static class ActivationGate
+{
+ public static bool Active(bool enabled,bool ctrlOnly,bool ctrlDown)=>enabled && (!ctrlOnly || ctrlDown);
+}
