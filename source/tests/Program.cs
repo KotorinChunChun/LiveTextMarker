@@ -1,0 +1,25 @@
+using PointerUnderline;
+int passed=0;
+void Check(bool value,string label) { if(!value) throw new Exception(label); Console.WriteLine("PASS "+label); passed++; }
+var lines=new[]{new Box(-1500,100,700,30),new Box(-1500,150,300,30),new Box(0,0,0,0)};
+Check(Geometry.Pick(lines,-1200,115)==lines[0],"negative monitor coordinates");
+Check(Geometry.Pick(lines,-1300,162)==lines[1],"switch to next line");
+Check(Geometry.Pick(lines,-1100,162)==null,"reject whitespace to right of text");
+Check(Geometry.Pick(lines,-1300,140)==null,"reject between lines");
+Check(Geometry.Pick(lines,800,500)==null,"reject distant nearest line");
+Check(!new Box(double.NaN,0,10,10).Valid,"reject invalid provider coordinates");
+Check(Geometry.Underline(lines[0],new Box(-1920,0,1920,1080),1.5,3,3)==new Box(-1500,134.5,700,4.5),"150 percent DPI thickness and offset");
+Check(Geometry.Underline(new Box(-10,100,100,20),new Box(0,0,1920,1080),1,3,3)==new Box(0,123,90,3),"clip underline to screen");
+Check(Geometry.Pick(new[]{new Box(0,0,50,20),new Box(0,0,500,20)},20,10)?.Width==50,"prefer narrow overlapping line");
+Check(!new Box(0,0,-10,20).Contains(0,0),"negative width rejected");
+var candidate=new Box(10,10,200,30);
+bool Gate(bool enabled=true,bool closing=false,int currentGen=1,long liveWindow=10,long liveForeground=20,double y=20)=>DetectionGate.Accept(candidate,enabled,closing,1,currentGen,10,liveWindow,20,liveForeground,50,y,20,1);
+Check(Gate(),"accept current result");
+Check(!Gate(enabled:false),"discard after pause");
+Check(!Gate(closing:true),"discard after close");
+Check(!Gate(currentGen:2),"discard obsolete generation");
+Check(!Gate(liveWindow:11),"discard after pointer changes windows");
+Check(!Gate(liveForeground:21),"discard after foreground switch");
+Check(!Gate(y:35),"discard stale result after vertical movement");
+Check(!DetectionGate.Accept(null,true,false,1,1,10,10,20,20,50,20,20,1),"no line clears detection");
+Console.WriteLine($"{passed} checks passed.");

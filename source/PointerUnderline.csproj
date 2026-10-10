@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType><TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms><UseWPF>true</UseWPF><EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>PointerUnderline</AssemblyName><RootNamespace>PointerUnderline</RootNamespace>
+    <PublishSingleFile>false</PublishSingleFile><Platforms>x64</Platforms>
+  </PropertyGroup>
+  <ItemGroup><PackageReference Include="Tesseract" Version="5.2.0" /></ItemGroup>
+  <ItemGroup><Content Include="tessdata\*.traineddata" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><Compile Remove="tests\**" /></ItemGroup>
+</Project>

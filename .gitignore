@@ -1,0 +1,8 @@
+app/
+source/bin/
+source/obj/
+source/out/
+source/tests/bin/
+source/tests/obj/
+dev/temp/
+dev/private/
