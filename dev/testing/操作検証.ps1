@@ -44,7 +44,7 @@ if($Dark) { $arguments+='-Dark' }
 $fixture = Start-Process -FilePath (Get-Command pwsh).Source -ArgumentList $arguments -WindowStyle Hidden -PassThru
 $held = $false
 try {
- $fixtureWindow = Wait-AppWindow -Title 'PointerUnderline 認識テスト'
+ $fixtureWindow = Wait-AppWindow -Title 'LiveTextMarker 認識テスト'
  [WUA.Win]::ShowWindow($fixtureWindow,5) | Out-Null
  [WUA.Win]::SetForegroundWindow($fixtureWindow) | Out-Null
  Start-Sleep -Milliseconds 300

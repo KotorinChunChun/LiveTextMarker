@@ -46,7 +46,7 @@ if($Ocr) { $arguments+='-Ocr' }
 $fixture=Start-Process -FilePath (Get-Command pwsh).Source -ArgumentList $arguments -WindowStyle Hidden -PassThru
 $held=$false
 try {
- $target=Wait-AppWindow -Title 'PointerUnderline 認識テスト'
+ $target=Wait-AppWindow -Title 'LiveTextMarker 認識テスト'
  [WUA.Win]::ShowWindow($target,5) | Out-Null
  Save-WindowScreenshot -WindowHandle $target -Path "$PSScriptRoot/点滅検証-対象.png" | Out-Null
  $targetRoot=[System.Windows.Automation.AutomationElement]::FromHandle($target)

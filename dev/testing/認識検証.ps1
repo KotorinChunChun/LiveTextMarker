@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Stop'
 $fixture = Start-Process -FilePath (Get-Command pwsh).Source -ArgumentList @('-NoProfile','-STA','-File',"`"$PSScriptRoot/文章テスト画面.ps1`"") -WindowStyle Hidden -PassThru
 $worker = $null
 try {
- $window = Wait-AppWindow -Title 'PointerUnderline 認識テスト'
+ $window = Wait-AppWindow -Title 'LiveTextMarker 認識テスト'
  [WUA.Win]::ShowWindow($window,5) | Out-Null
  [WUA.Win]::SetForegroundWindow($window) | Out-Null
  Start-Sleep -Milliseconds 500

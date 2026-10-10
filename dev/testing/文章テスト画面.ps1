@@ -2,7 +2,7 @@ param([switch]$Ocr,[switch]$Dark)
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 $form = [System.Windows.Forms.Form]::new()
-$form.Text = 'PointerUnderline 認識テスト'
+$form.Text = 'LiveTextMarker 認識テスト'
 $form.ClientSize = [System.Drawing.Size]::new(580,260)
 $form.StartPosition = 'CenterScreen'
 $text = [System.Windows.Forms.RichTextBox]::new()

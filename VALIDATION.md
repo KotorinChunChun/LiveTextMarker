@@ -1,17 +1,23 @@
-# Validation report — 2026-10-09
+# LiveTextMarker 確認記録
 
-2026-10-10 の改善版で Windows 実機のUIA・OCR・Ctrlモード・設定保存・ログ配置を確認済み。最新の結果と再現手順は [認識改善記録](dev/testing/20261010-認識改善.md) を参照。以下は初版時点の記録。
+更新日：2026-10-10。現行版：1.1.0。現行仕様は [仕様書](docs/仕様.md)、利用手順は [README](README.md) を参照。
 
-Passed:
-- .NET SDK 8.0.425 Release publish, win-x64, self-contained, 0 warnings / 0 errors.
-- 18 automated geometry and stale-result gate assertions on .NET 8.
-- UIA MTA worker process, bounded send/read deadlines, click-through styles, and negative-coordinate/DPI handling reviewed.
-- Both Japanese/English models and native x64 Tesseract/Leptonica DLLs present in release.
-- App executable, managed dependencies, runtime, source, instructions, and notices included.
+## 今回の点検
 
-Not executed:
-- Windows GUI startup / native OCR DLL loading.
-- Actual PowerPoint, PDF, browser UIA providers.
-- Click-through and focus behavior, mixed-DPI physical monitors, screen sharing.
+起動中の設定画面をUIAで読み取り、タイトル「設定 - LiveTextMarker - ver 1.1.0」、各設定欄、見出しの削除、終了ボタン名を確認した。実行ファイルのProductNameとFileDescriptionはLiveTextMarker。キー入力・クリック・動作テストは行っていない。
 
-This is a first Windows build, not a claim of completed Windows end-to-end QA. See README for pre-presentation checks and limitations.
+README、ソース側README、LICENSE、ビルド手順、検証用画面の名称を点検した。現行の案内に古い開始手順、設定ラベル、検証状況が混在していたため更新した。過去の記録・画像は当時の証跡として保存し、現行仕様への参照を付けた。
+
+## 過去に実測した範囲
+
+- 47件の自動テストとReleaseビルド：Ctrl独立実行・線幅の改善時に成功。[記録](dev/testing/20261010-Ctrl独立実行と線幅.md)
+- UIA／OCR、複数行、隣接フレーム、別ウィンドウの重なり、下線／塗りの描画制限。[記録](dev/testing/20261010-対象領域制限.md)
+- Discordの15個の本文要素と4個の複数行要素の認識範囲。[記録](dev/testing/20261010-Discord領域制限.md)
+- 7個のタブの境界内での下線・塗り。[記録](dev/testing/20261010-タブ領域制限.md)
+- 開始操作なしのCtrl実行、既定のCtrl+Alt+Uによる常時表示、各行の線幅一致、OCRの点滅・前景切替なし。[記録](dev/testing/20261010-Ctrl独立実行と線幅.md)
+
+## 現行版で未測定の範囲
+
+キー設定の任意変更・競合・修飾キーのみの動作、新しい×の格納・終了ボタン・OS終了の動作、新しい設定画面のサイズ変更時や複数DPIでの配置は動作テストを行っていない。設定画面更新のReleaseビルドは成功したが、過去のテスト成功を現行版の全動作保証とは扱わない。
+
+実際のPowerPoint、複数DPIの物理モニター、画面共有の受信側などの確認も完了していない。OCRや独自UIの認識にはREADMEに記載した制約がある。

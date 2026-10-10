@@ -21,7 +21,7 @@ public static class TabProbe {
 $fixture=Start-Process (Get-Command pwsh).Source -ArgumentList @('-NoProfile','-STA','-File',"`"$PSScriptRoot/タブテスト画面.ps1`"") -WindowStyle Hidden -PassThru
 $worker=$null; $held=$false
 try {
- $target=Wait-AppWindow -Title 'PointerUnderline タブ境界テスト'; [WUA.Win]::ShowWindow($target,5) | Out-Null
+ $target=Wait-AppWindow -Title 'LiveTextMarker タブ境界テスト'; [WUA.Win]::ShowWindow($target,5) | Out-Null
  if(-not (Save-WindowScreenshot -WindowHandle $target -Path "$PSScriptRoot/タブ境界.png")){throw '撮影失敗'}
  $root=[System.Windows.Automation.AutomationElement]::FromHandle($target)
  $tabs=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::TabItem))

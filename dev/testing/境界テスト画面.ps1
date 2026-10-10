@@ -3,11 +3,11 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 $form=[System.Windows.Forms.Form]::new()
 if($Cover) {
- $form.Text='PointerUnderline 境界カバー'; $form.StartPosition='Manual'; $form.Location=[System.Drawing.Point]::new($CoverX,$CoverY)
+ $form.Text='LiveTextMarker 境界カバー'; $form.StartPosition='Manual'; $form.Location=[System.Drawing.Point]::new($CoverX,$CoverY)
  $form.ClientSize=[System.Drawing.Size]::new(220,350); $form.TopMost=$true
  $form.BackColor=[System.Drawing.Color]::LightBlue
 } else {
- $form.Text='PointerUnderline フレーム境界テスト'; $form.ClientSize=[System.Drawing.Size]::new(900,320); $form.StartPosition='CenterScreen'
+ $form.Text='LiveTextMarker フレーム境界テスト'; $form.ClientSize=[System.Drawing.Size]::new(900,320); $form.StartPosition='CenterScreen'
  $layout=[System.Windows.Forms.TableLayoutPanel]::new(); $layout.Dock='Fill'; $layout.ColumnCount=2
  $layout.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Percent,50)) | Out-Null
  $layout.ColumnStyles.Add([System.Windows.Forms.ColumnStyle]::new([System.Windows.Forms.SizeType]::Percent,50)) | Out-Null

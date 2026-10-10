@@ -38,7 +38,7 @@ $fixture=Start-Process -FilePath (Get-Command pwsh).Source -ArgumentList $argume
 $cover=$null; $worker=$null; $held=$false
 $name="境界-$(if($Ocr){'OCR'}else{'UIA'})-$(if($Highlight){'塗り'}else{'下線'})"
 try {
- $target=Wait-AppWindow -Title 'PointerUnderline フレーム境界テスト'
+ $target=Wait-AppWindow -Title 'LiveTextMarker フレーム境界テスト'
  [WUA.Win]::ShowWindow($target,5) | Out-Null
  if(-not (Save-WindowScreenshot -WindowHandle $target -Path "$PSScriptRoot/$name.png")) { throw '撮影失敗' }
  $root=[System.Windows.Automation.AutomationElement]::FromHandle($target)
@@ -72,7 +72,7 @@ try {
  # A separate topmost window covers the right part of the left frame.
  $coverX=[int]($leftRect.X+220); $coverY=[int]($leftRect.Y-20)
  $cover=Start-Process -FilePath (Get-Command pwsh).Source -ArgumentList @('-NoProfile','-STA','-File',"`"$PSScriptRoot/境界テスト画面.ps1`"",'-Cover','-CoverX',$coverX,'-CoverY',$coverY) -WindowStyle Hidden -PassThru
- $coverWindow=Wait-AppWindow -Title 'PointerUnderline 境界カバー'; [WUA.Win]::ShowWindow($coverWindow,5) | Out-Null
+ $coverWindow=Wait-AppWindow -Title 'LiveTextMarker 境界カバー'; [WUA.Win]::ShowWindow($coverWindow,5) | Out-Null
  $coverNative=New-Object WUA.Win+RECT; [WUA.Win]::DwmGetWindowAttribute($coverWindow,9,[ref]$coverNative,16) | Out-Null
  if(-not (Save-WindowScreenshot -WindowHandle $target -Path "$PSScriptRoot/$name.png")) { throw '前景設定失敗' }
  [WUA.Win]::SetCursorPos([int]($leftRect.X+40),[int]($leftRect.Y+40))
