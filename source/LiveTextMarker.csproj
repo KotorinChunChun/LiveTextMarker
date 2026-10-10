@@ -5,9 +5,9 @@
     <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>LiveTextMarker</AssemblyName><Product>LiveTextMarker</Product><Title>LiveTextMarker</Title><RootNamespace>LiveTextMarker</RootNamespace>
     <PublishSingleFile>false</PublishSingleFile><Platforms>x64</Platforms>
-    <Version>1.1.0</Version>
+    <Version>1.1.0</Version><ApplicationIcon>assets/LiveTextMarker.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup><PackageReference Include="Tesseract" Version="5.2.0" /></ItemGroup>
   <ItemGroup><Content Include="tessdata\*.traineddata" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /></ItemGroup>
-  <ItemGroup><Compile Remove="tests\**" /></ItemGroup>
+  <ItemGroup><Compile Remove="tests\**" /><EmbeddedResource Include="assets/LiveTextMarker.ico" LogicalName="LiveTextMarker.AppIcon" /></ItemGroup>
 </Project>
