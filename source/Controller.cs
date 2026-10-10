@@ -4,7 +4,7 @@ using System.Windows.Forms;
 namespace PointerUnderline;
 internal sealed class Controller : Form
 {
- private readonly Overlay overlay=new();
+ private readonly List<Overlay> overlays=new();
  private readonly Worker worker=new();
  private readonly System.Windows.Forms.Timer timer=new() { Interval=20 };
  private readonly NotifyIcon tray;
@@ -16,6 +16,7 @@ internal sealed class Controller : Form
  private Color lineColor=Color.FromArgb(239,45,56);
  private bool enabled,busy,closing;
  private Box? current;
+ private Box[] currentLines=Array.Empty<Box>();
  private Native.POINT last;
  private long movedAt,lastQuery;
  private int generation;
@@ -50,7 +51,8 @@ internal sealed class Controller : Form
   timer.Tick+=Tick; timer.Start();
  }
  private void SetEnabled(bool value) { enabled=value; generation++; cachedImage=null; cachedOcr=null; Clear(); toggle.Text=value?"一時停止 / Pause":"開始 / Start"; tray.Text=value?"Pointer Underline — 追従中":"Pointer Underline — 停止中"; status.Text=value?"追従中。文字の上にポインタを移動してください。":"一時停止中"; lastQuery=0; }
- private void Clear() { current=null; overlay.Hide(); }
+ private void Clear() { current=null; currentLines=Array.Empty<Box>(); HideLines(); }
+ private void HideLines() { foreach(var overlay in overlays) overlay.Hide(); }
  protected override void WndProc(ref Message m) { if(m.Msg==0x0312) { if(m.WParam==(nint)1) SetEnabled(!enabled); else if(m.WParam==(nint)2) Close(); } base.WndProc(ref m); }
  private async void Tick(object? sender,EventArgs args)
  {
@@ -74,8 +76,8 @@ internal sealed class Controller : Form
     var screen=Screen.FromPoint(new Point(point.X,point.Y)).Bounds;
     int cropHeight=Math.Min(screen.Height,Math.Max(180,(int)(240*Native.Scale(point))));
     var crop=new Rectangle(screen.Left,Math.Clamp(point.Y-cropHeight/2,screen.Top,screen.Bottom-cropHeight),screen.Width,cropHeight);
-    var wasVisible=overlay.Visible;
-    overlay.Hide(); Native.DwmFlush();
+    var wasVisible=overlays.Any(o=>o.Visible);
+    HideLines(); Native.DwmFlush();
     string image;
     try { using var bitmap=new Bitmap(crop.Width,crop.Height,PixelFormat.Format24bppRgb); using(var graphics=Graphics.FromImage(bitmap)) graphics.CopyFromScreen(crop.Location,Point.Empty,crop.Size,CopyPixelOperation.SourceCopy); using var stream=new MemoryStream(); bitmap.Save(stream,ImageFormat.Png); image=Convert.ToBase64String(stream.ToArray()); }
     finally { if(wasVisible&&current is {} old&&enabled) ShowLine(old,point); }
@@ -86,11 +88,20 @@ internal sealed class Controller : Form
    Native.GetCursorPos(out var live);
    var liveWindow=Native.GetAncestor(Native.WindowFromPoint(live),2);
    if(liveWindow!=window||Native.GetForegroundWindow()!=foreground) { Clear(); return; }
-   if(DetectionGate.Accept(result.Bounds,enabled,closing,version,generation,(long)window,(long)liveWindow,(long)foreground,(long)Native.GetForegroundWindow(),live.X,live.Y,point.Y,Native.Scale(live))) { var box=result.Bounds!.Value; current=box; ShowLine(box,live); status.Text=$"追従中 · {result.Source}"; }
+   if(DetectionGate.Accept(result.Bounds,enabled,closing,version,generation,(long)window,(long)liveWindow,(long)foreground,(long)Native.GetForegroundWindow(),live.X,live.Y,point.Y,Native.Scale(live))) { var box=result.Bounds!.Value; current=box; currentLines=result.Lines ?? new[]{box}; ShowLine(box,live); status.Text=$"追従中 · {result.Source} · {currentLines.Length}行"; }
    else { Clear(); status.Text=result.Sensitive?"パスワード欄では認識を停止します。":result.Error is {} error?error:"追従中 · ポインタ下に文字が見つかりません"; }
   } catch(Exception ex) { Clear(); status.Text="認識を再試行します: "+ex.GetType().Name; }
   finally { busy=false; }
  }
- private void ShowLine(Box box,Native.POINT point) { var s=Screen.FromPoint(new Point(point.X,point.Y)).Bounds; var line=Geometry.Underline(box,new Box(s.X,s.Y,s.Width,s.Height),Native.Scale(point),(int)thickness.Value,(int)offset.Value); if(line.Width>0&&line.Height>0) overlay.Draw(line,lineColor); else overlay.Hide(); }
- protected override void OnFormClosing(FormClosingEventArgs e) { closing=true; enabled=false; generation++; timer.Stop(); Native.UnregisterHotKey(Handle,1); Native.UnregisterHotKey(Handle,2); worker.Dispose(); overlay.Dispose(); tray.Visible=false; tray.Dispose(); timer.Dispose(); base.OnFormClosing(e); }
+ private void ShowLine(Box box,Native.POINT point) {
+  var s=Screen.FromPoint(new Point(point.X,point.Y)).Bounds;
+  var lines=currentLines.Length>0?currentLines:new[]{box};
+  while(overlays.Count<lines.Length) overlays.Add(new Overlay());
+  for(int i=0;i<overlays.Count;i++) {
+   if(i>=lines.Length) { overlays[i].Hide(); continue; }
+   var line=Geometry.Underline(lines[i],new Box(s.X,s.Y,s.Width,s.Height),Native.Scale(point),(int)thickness.Value,(double)offset.Value);
+   if(line.Width>0&&line.Height>0) overlays[i].Draw(line,lineColor); else overlays[i].Hide();
+  }
+ }
+ protected override void OnFormClosing(FormClosingEventArgs e) { closing=true; enabled=false; generation++; timer.Stop(); Native.UnregisterHotKey(Handle,1); Native.UnregisterHotKey(Handle,2); worker.Dispose(); foreach(var overlay in overlays) overlay.Dispose(); tray.Visible=false; tray.Dispose(); timer.Dispose(); base.OnFormClosing(e); }
 }
