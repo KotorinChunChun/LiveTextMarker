@@ -35,20 +35,24 @@ internal sealed class Controller : Form
  private string? cachedImage;
  private Detection? cachedOcr;
  private Rectangle cachedCrop;
- private readonly bool toggleHotkey,quitHotkey;
+ private readonly HotkeyEditor toggleKey,quitKey;
+ private bool exitRequested,toggleModifiersDown,quitModifiersDown,hotkeyCollision;
  public Controller()
  {
   var settings=Settings.Load(); ctrlOnly.Checked=settings.CtrlOnly; ocr.Checked=settings.Ocr;
+  toggleKey=new HotkeyEditor("開始／一時停止",settings.ToggleKey??HotkeyBinding.ToggleDefault);
+  quitKey=new HotkeyEditor("アプリ終了",settings.QuitKey??HotkeyBinding.QuitDefault);
   thickness.Value=Math.Clamp(settings.Thickness,1,12); offset.Value=Math.Clamp(settings.Offset,-30,30); lineColor=Color.FromArgb(settings.Color);
   highlightColor=Color.FromArgb(settings.HighlightColor); opacity.Value=Math.Clamp(settings.HighlightOpacity,8,30);
   displayMode.Items.AddRange(new object[]{"下線","塗り"}); displayMode.SelectedIndex=settings.Highlight?1:0;
-  Text="LiveTextMarker"; ClientSize=new Size(560,480); MinimumSize=new Size(550,490); StartPosition=FormStartPosition.CenterScreen;
+  var version=typeof(Controller).Assembly.GetName().Version!;
+  Text=$"設定 - LiveTextMarker - ver {version.Major}.{version.Minor}.{version.Build}"; ClientSize=new Size(660,510); MinimumSize=new Size(675,550); StartPosition=FormStartPosition.CenterScreen;
   Font=new Font("Yu Gothic UI",10); AutoScaleMode=AutoScaleMode.Dpi;
   var layout=new TableLayoutPanel { Dock=DockStyle.Fill,ColumnCount=1,RowCount=10,Padding=new Padding(16) };
   layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
   for(int i=0;i<10;i++) layout.RowStyles.Add(new RowStyle(i==8?SizeType.Percent:SizeType.AutoSize,i==8?100:0));
-  layout.Controls.Add(new Label { Text="ポインタの文章を強調",Font=new Font(Font.FontFamily,16,FontStyle.Bold),AutoSize=true },0,0);
-  layout.Controls.Add(new Label { Text="Ctrl + Alt + U：開始 / 一時停止　 Ctrl + Alt + Q：終了",AutoSize=true,Margin=new Padding(3,8,3,8) },0,1);
+  layout.Controls.Add(toggleKey,0,0);
+  layout.Controls.Add(quitKey,0,1);
   layout.Controls.Add(ocr,0,2); layout.Controls.Add(ctrlOnly,0,3);
   var modes=new FlowLayoutPanel { AutoSize=true,WrapContents=false };
   modes.Controls.Add(new Label { Text="表示方法",AutoSize=true,Margin=new Padding(0,7,3,0) }); modes.Controls.Add(displayMode);
@@ -61,13 +65,18 @@ internal sealed class Controller : Form
   var color=new Button { Text="色を選ぶ",AutoSize=true }; color.Click+=(_,_)=> { using var d=new ColorDialog { Color=displayMode.SelectedIndex==1?highlightColor:lineColor }; if(d.ShowDialog(this)==DialogResult.OK) { if(displayMode.SelectedIndex==1) highlightColor=d.Color; else lineColor=d.Color; Clear(); SaveSettings(); } }; options.Controls.Add(color); layout.Controls.Add(options,0,5);
   var buttons=new FlowLayoutPanel { AutoSize=true,WrapContents=false }; toggle.Click+=(_,_)=>SetEnabled(!enabled); buttons.Controls.Add(toggle);
   var minimize=new Button { Text="通知領域へ",AutoSize=true }; minimize.Click+=(_,_)=>Hide(); buttons.Controls.Add(minimize);
-  var quit=new Button { Text="終了",AutoSize=true }; quit.Click+=(_,_)=>Close(); buttons.Controls.Add(quit); layout.Controls.Add(buttons,0,6);
+  layout.Controls.Add(buttons,0,6);
   layout.Controls.Add(status,0,7); layout.Controls.Add(log,0,8);
-  layout.Controls.Add(new Label { Text="直近10件 · 画像・本文はログに記録しません",AutoSize=true,ForeColor=Color.DimGray },0,9); Controls.Add(layout);
-  var menu=new ContextMenuStrip(); menu.Items.Add("開始 / 一時停止",null,(_,_)=>SetEnabled(!enabled)); menu.Items.Add("設定を表示",null,(_,_)=>{ Show(); WindowState=FormWindowState.Normal; Activate(); }); menu.Items.Add("終了",null,(_,_)=>Close());
+  var bottom=new TableLayoutPanel { Dock=DockStyle.Fill,AutoSize=true,ColumnCount=2 };
+  bottom.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100)); bottom.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+  bottom.Controls.Add(new Label { Text="直近10件",AutoSize=true,ForeColor=Color.DimGray },0,0);
+  var quit=new Button { Text="アプリを終了させる",AutoSize=true,Anchor=AnchorStyles.Right|AnchorStyles.Bottom }; quit.Click+=(_,_)=>ExitApplication(); bottom.Controls.Add(quit,1,0);
+  layout.Controls.Add(bottom,0,9); Controls.Add(layout);
+  var menu=new ContextMenuStrip(); menu.Items.Add("開始 / 一時停止",null,(_,_)=>SetEnabled(!enabled)); menu.Items.Add("設定を表示",null,(_,_)=>{ Show(); WindowState=FormWindowState.Normal; Activate(); }); menu.Items.Add("アプリを終了させる",null,(_,_)=>ExitApplication());
   tray=new NotifyIcon { Icon=SystemIcons.Information,Text="LiveTextMarker — 停止中",Visible=true,ContextMenuStrip=menu }; tray.DoubleClick+=(_,_)=>{ Show(); Activate(); };
-  _=Handle; toggleHotkey=Native.RegisterHotKey(Handle,1,0x4003,0x55); quitHotkey=Native.RegisterHotKey(Handle,2,0x4003,0x51);
-  if(!toggleHotkey||!quitHotkey) status.Text="ショートカットが他のアプリで使用されています。ボタンまたは通知領域を使ってください。";
+  _=Handle; ApplyHotkeys();
+  toggleKey.BindingChanged+=(_,_)=> { ApplyHotkeys(); SaveSettings(); };
+  quitKey.BindingChanged+=(_,_)=> { ApplyHotkeys(); SaveSettings(); };
   ocr.CheckedChanged+=(_,_)=> { generation++; Clear(); cachedImage=null; SaveSettings(); };
   ctrlOnly.CheckedChanged+=(_,_)=> { generation++; Clear(); SaveSettings(); status.Text=Active?"追従中":ctrlOnly.Checked?"Ctrl待機中":"一時停止中"; AddLog(ctrlOnly.Checked?"Ctrl押下を有効化":"Ctrl押下を無効化"); };
   thickness.ValueChanged+=(_,_)=> { Clear(); SaveSettings(); }; offset.ValueChanged+=(_,_)=> { Clear(); SaveSettings(); };
@@ -76,16 +85,34 @@ internal sealed class Controller : Form
   UpdateModeControls();
   timer.Tick+=Tick; timer.Start();
  }
+ private void ExitApplication() { exitRequested=true; Close(); }
+ private void ApplyHotkeys() {
+  Native.UnregisterHotKey(Handle,1); Native.UnregisterHotKey(Handle,2);
+  toggleModifiersDown=toggleKey.ModifierOnlyDown; quitModifiersDown=quitKey.ModifierOnlyDown;
+  bool Register(int id,HotkeyBinding binding)=>binding.Key==0 || Native.RegisterHotKey(Handle,id,binding.Modifiers|0x4000,(uint)binding.Key);
+  var toggleOk=Register(1,toggleKey.Binding); var quitOk=Register(2,quitKey.Binding);
+  hotkeyCollision=toggleKey.Binding.Enabled && toggleKey.Binding==quitKey.Binding;
+  if(hotkeyCollision) {
+   Native.UnregisterHotKey(Handle,1); Native.UnregisterHotKey(Handle,2);
+   status.Text="開始と終了には異なるキーを設定してください。"; AddLog(status.Text);
+  } else if(!toggleOk || !quitOk) {
+   status.Text="キーを登録できません。ほかの割り当てを選んでください。"; AddLog(status.Text);
+  } else status.Text=Active?"追従中":ctrlOnly.Checked?"Ctrl待機中":"一時停止中";
+ }
  private void UpdateModeControls() { var fill=displayMode.SelectedIndex==1; thickness.Enabled=!fill; offset.Enabled=!fill; opacity.Enabled=fill; }
- private void SaveSettings() { try { new Settings(ctrlOnly.Checked,ocr.Checked,(int)thickness.Value,offset.Value,lineColor.ToArgb(),displayMode.SelectedIndex==1,(int)opacity.Value,highlightColor.ToArgb()).Save(); } catch(Exception ex) { AddLog("設定保存: "+ex.GetType().Name); } }
+ private void SaveSettings() { try { new Settings(ctrlOnly.Checked,ocr.Checked,(int)thickness.Value,offset.Value,lineColor.ToArgb(),displayMode.SelectedIndex==1,(int)opacity.Value,highlightColor.ToArgb(),toggleKey.Binding,quitKey.Binding).Save(); } catch(Exception ex) { AddLog("設定保存: "+ex.GetType().Name); } }
  private void AddLog(string message) { if(message==lastLog) return; lastLog=message; log.Items.Insert(0,$"{DateTime.Now:HH:mm:ss}  {message}"); while(log.Items.Count>10) log.Items.RemoveAt(log.Items.Count-1); }
  private void SetEnabled(bool value) { enabled=value; generation++; cachedImage=null; cachedOcr=null; Clear(); toggle.Text=value?"一時停止 / Pause":"開始 / Start"; tray.Text=value?"LiveTextMarker — 追従中":"LiveTextMarker — 停止中"; status.Text=Active?"追従中。文字の上にポインタを移動してください。":ctrlOnly.Checked?"Ctrl待機中":"一時停止中"; AddLog(value?"開始":"一時停止"); lastQuery=0; }
  private void Clear() { current=null; currentLines=Array.Empty<Box>(); currentScope=null; currentVisible=null; currentWindow=0; HideLines(); }
  private Box? VisibleScope(nint window,Box scope,Native.POINT point)=>WindowRegion.Visible(window,scope,point.X,point.Y,overlays.Where(o=>o.IsHandleCreated).Select(o=>o.Handle));
  private void HideLines() { foreach(var overlay in overlays) overlay.HideLine(); }
- protected override void WndProc(ref Message m) { if(m.Msg==0x0312) { if(m.WParam==(nint)1) SetEnabled(!enabled); else if(m.WParam==(nint)2) Close(); } base.WndProc(ref m); }
+ protected override void WndProc(ref Message m) { if(m.Msg==0x0312) { if(m.WParam==(nint)1) SetEnabled(!enabled); else if(m.WParam==(nint)2) ExitApplication(); } base.WndProc(ref m); }
  private async void Tick(object? sender,EventArgs args)
  {
+  var toggleDown=toggleKey.ModifierOnlyDown; var quitDown=quitKey.ModifierOnlyDown;
+  if(!hotkeyCollision && quitDown&&!quitModifiersDown) { ExitApplication(); return; }
+  if(!hotkeyCollision && toggleDown&&!toggleModifiersDown) SetEnabled(!enabled);
+  toggleModifiersDown=toggleDown; quitModifiersDown=quitDown;
   var active=Active;
   if(active!=wasActive) { wasActive=active; generation++; Clear(); cachedImage=null; lastQuery=0; status.Text=active?"追従中":ctrlOnly.Checked?"Ctrl待機中":"一時停止中"; AddLog(status.Text); }
   if(closing||!active||!Native.GetCursorPos(out var point)) return;
@@ -170,5 +197,5 @@ internal sealed class Controller : Form
    if(line.Width>0&&line.Height>0) overlays[i].Draw(line,fill?highlightColor:lineColor,fill?Geometry.HighlightAlpha((int)opacity.Value):(byte)255); else overlays[i].HideLine();
   }
  }
- protected override void OnFormClosing(FormClosingEventArgs e) { SaveSettings(); closing=true; enabled=false; generation++; timer.Stop(); Native.UnregisterHotKey(Handle,1); Native.UnregisterHotKey(Handle,2); worker.Dispose(); foreach(var overlay in overlays) overlay.Dispose(); tray.Visible=false; tray.Dispose(); timer.Dispose(); tips.Dispose(); base.OnFormClosing(e); }
+ protected override void OnFormClosing(FormClosingEventArgs e) { if(!exitRequested && e.CloseReason==CloseReason.UserClosing) { e.Cancel=true; SaveSettings(); Hide(); return; } SaveSettings(); closing=true; enabled=false; generation++; timer.Stop(); Native.UnregisterHotKey(Handle,1); Native.UnregisterHotKey(Handle,2); worker.Dispose(); foreach(var overlay in overlays) overlay.Dispose(); tray.Visible=false; tray.Dispose(); timer.Dispose(); tips.Dispose(); base.OnFormClosing(e); }
 }

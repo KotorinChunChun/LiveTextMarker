@@ -35,7 +35,7 @@ try {
  }
  'PASS: 7個のTabItemを個別の認識境界として取得'
  if($Live) {
-  $main=Wait-AppWindow -Title 'LiveTextMarker'
+  $main=Wait-AppWindow -Title '設定 - LiveTextMarker - ver 1.1.0'
   [WUA.Win]::ShowWindow($main,5) | Out-Null
   if(-not (Save-WindowScreenshot -WindowHandle $main -Path "$PSScriptRoot/タブ検証-設定.png")){throw '設定画面の準備失敗'}
   $appRoot=[System.Windows.Automation.AutomationElement]::FromHandle($main); $appId=$appRoot.Current.ProcessId

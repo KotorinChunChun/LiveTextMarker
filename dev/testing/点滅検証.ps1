@@ -32,7 +32,7 @@ public static class FlickerProbe {
  public static bool CaptureRestored(uint pid) { foreach(var h in Lines(pid)) { if(!GetWindowDisplayAffinity(h,out var affinity)||affinity!=0) return false; } return true; }
 }
 '@
-$main=Wait-AppWindow -Title 'LiveTextMarker'
+$main=Wait-AppWindow -Title '設定 - LiveTextMarker - ver 1.1.0'
 $appRoot=[System.Windows.Automation.AutomationElement]::FromHandle($main)
 $appId=$appRoot.Current.ProcessId
 Save-WindowScreenshot -WindowHandle $main -Path "$PSScriptRoot/点滅検証-設定.png" | Out-Null
