@@ -1,6 +1,7 @@
 param([switch]$Ocr,[switch]$AssertStable,[switch]$Highlight)
 $ErrorActionPreference='Stop'
 . 'C:/Users/kotorichun/.codex/skills/windows-ui-automation/scripts/ui-toolkit.ps1'
+. "$PSScriptRoot/検証ウィンドウ共通.ps1"
 Add-Type @'
 using System;
 using System.Collections.Generic;
@@ -88,5 +89,5 @@ try {
 } finally {
  [FlickerProbe]::Stop()
  if($held) { [FlickerProbe]::keybd_event(0x11,0,2,[UIntPtr]::Zero) }
- $fixture.Refresh(); if(-not $fixture.HasExited) { $fixture.CloseMainWindow() | Out-Null; $fixture.WaitForExit(3000) | Out-Null }
+ Close-TestWindow $fixture
 }

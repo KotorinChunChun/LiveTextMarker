@@ -1,6 +1,7 @@
 param([string]$Exe = "$PSScriptRoot/../../source/out/PointerUnderline/PointerUnderline.exe")
 $ErrorActionPreference = 'Stop'
 . 'C:/Users/kotorichun/.codex/skills/windows-ui-automation/scripts/ui-toolkit.ps1'
+. "$PSScriptRoot/検証ウィンドウ共通.ps1"
 $fixture = Start-Process -FilePath (Get-Command pwsh).Source -ArgumentList @('-NoProfile','-STA','-File',"`"$PSScriptRoot/文章テスト画面.ps1`"") -WindowStyle Hidden -PassThru
 $worker = $null
 try {
@@ -33,5 +34,5 @@ try {
 } finally {
  if($worker) { if(-not $worker.HasExited) { $worker.Kill() }; $worker.Dispose() }
  $fixture.Refresh()
- if(-not $fixture.HasExited) { $fixture.CloseMainWindow() | Out-Null; $fixture.WaitForExit(3000) | Out-Null }
+ Close-TestWindow $fixture
 }

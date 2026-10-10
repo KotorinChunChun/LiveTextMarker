@@ -1,6 +1,7 @@
 param([switch]$Highlight,[switch]$Dark)
 $ErrorActionPreference = 'Stop'
 . 'C:/Users/kotorichun/.codex/skills/windows-ui-automation/scripts/ui-toolkit.ps1'
+. "$PSScriptRoot/検証ウィンドウ共通.ps1"
 Add-Type @'
 using System;
 using System.Collections.Generic;
@@ -74,7 +75,7 @@ try {
 } finally {
  if($held) { [PointerSmoke]::keybd_event(0x11,0,2,[UIntPtr]::Zero) }
  $fixture.Refresh()
- if(-not $fixture.HasExited) { $fixture.CloseMainWindow() | Out-Null; $fixture.WaitForExit(3000) | Out-Null }
+ Close-TestWindow $fixture
 }
 $log = $root.FindFirst([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::List))
 if($log.Current.BoundingRectangle.Height -lt 100) { throw 'ログ欄の高さが不足しています' }
