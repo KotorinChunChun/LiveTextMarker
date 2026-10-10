@@ -20,12 +20,18 @@ internal sealed class Detector : IDisposable
     var text=range.GetText(16385);
     if(text.Length>16384 || range.GetBoundingRectangles().Length>40) { range=line; text=range.GetText(16385); }
     if(string.IsNullOrWhiteSpace(text)) continue;
-    // Drop indentation/newline/trailing spaces when provider exposes character endpoints.
+    // UIA providers may return CRLF/CRCRLF for one logical character.
+    // Trim only when moving the endpoint preserves every non-whitespace character.
     if(text.Length<16385) {
-     int leading=text.Length-text.TrimStart().Length;
-     int trailing=text.Length-text.TrimEnd().Length;
-     if(trailing>0) range.MoveEndpointByUnit(TextPatternRangeEndpoint.End,TextUnit.Character,-trailing);
-     if(leading>0) range.MoveEndpointByUnit(TextPatternRangeEndpoint.Start,TextUnit.Character,leading);
+     foreach(var endpoint in new[]{TextPatternRangeEndpoint.End,TextPatternRangeEndpoint.Start}) {
+      for(int step=0;step<64 && text.Length>0 && char.IsWhiteSpace(endpoint==TextPatternRangeEndpoint.End?text[^1]:text[0]);step++) {
+       var trimmed=range.Clone();
+       if(trimmed.MoveEndpointByUnit(endpoint,TextUnit.Character,endpoint==TextPatternRangeEndpoint.End?-1:1)==0) break;
+       var nextText=trimmed.GetText(16385);
+       if(nextText.Trim()!=text.Trim()) break;
+       range=trimmed; text=nextText;
+      }
+     }
     }
     var boxes=Geometry.MergeRows(range.GetBoundingRectangles().Select(r=>new Box(r.X,r.Y,r.Width,r.Height)));
     var picked=Geometry.Pick(boxes,x,y);

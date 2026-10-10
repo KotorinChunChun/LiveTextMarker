@@ -64,7 +64,7 @@ internal sealed class Controller : Form
  }
  private void SaveSettings() { try { new Settings(ctrlOnly.Checked,ocr.Checked,(int)thickness.Value,offset.Value,lineColor.ToArgb()).Save(); } catch(Exception ex) { AddLog("設定保存: "+ex.GetType().Name); } }
  private void AddLog(string message) { if(message==lastLog) return; lastLog=message; log.Items.Insert(0,$"{DateTime.Now:HH:mm:ss}  {message}"); while(log.Items.Count>10) log.Items.RemoveAt(log.Items.Count-1); }
- private void SetEnabled(bool value) { enabled=value; generation++; cachedImage=null; cachedOcr=null; Clear(); toggle.Text=value?"一時停止 / Pause":"開始 / Start"; tray.Text=value?"Pointer Underline — 追従中":"Pointer Underline — 停止中"; status.Text=value?"追従中。文字の上にポインタを移動してください。":"一時停止中"; AddLog(value?"開始":"一時停止"); lastQuery=0; }
+ private void SetEnabled(bool value) { enabled=value; generation++; cachedImage=null; cachedOcr=null; Clear(); toggle.Text=value?"一時停止 / Pause":"開始 / Start"; tray.Text=value?"Pointer Underline — 追従中":"Pointer Underline — 停止中"; status.Text=value?(Active?"追従中。文字の上にポインタを移動してください。":"Ctrl待機中"):"一時停止中"; AddLog(value?"開始":"一時停止"); lastQuery=0; }
  private void Clear() { current=null; currentLines=Array.Empty<Box>(); HideLines(); }
  private void HideLines() { foreach(var overlay in overlays) overlay.Hide(); }
  protected override void WndProc(ref Message m) { if(m.Msg==0x0312) { if(m.WParam==(nint)1) SetEnabled(!enabled); else if(m.WParam==(nint)2) Close(); } base.WndProc(ref m); }

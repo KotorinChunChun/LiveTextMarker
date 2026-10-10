@@ -1,5 +1,7 @@
 # Validation report — 2026-10-09
 
+2026-10-10 の改善版で Windows 実機のUIA・OCR・Ctrlモード・設定保存・ログ配置を確認済み。最新の結果と再現手順は [認識改善記録](dev/testing/20261010-認識改善.md) を参照。以下は初版時点の記録。
+
 Passed:
 - .NET SDK 8.0.425 Release publish, win-x64, self-contained, 0 warnings / 0 errors.
 - 18 automated geometry and stale-result gate assertions on .NET 8.
