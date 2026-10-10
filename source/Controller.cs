@@ -105,24 +105,25 @@ internal sealed class Controller : Form
     var screen=Screen.FromPoint(new Point(point.X,point.Y)).Bounds;
     int cropHeight=Math.Min(screen.Height,Math.Max(180,(int)(240*Native.Scale(point))));
     var crop=new Rectangle(screen.Left,Math.Clamp(point.Y-cropHeight/2,screen.Top,screen.Bottom-cropHeight),screen.Width,cropHeight);
+    if(Native.DwmGetWindowAttribute(window,9,out var targetRect,16)==0) crop=Rectangle.Intersect(crop,new Rectangle(targetRect.Left,targetRect.Top,targetRect.Right-targetRect.Left,targetRect.Bottom-targetRect.Top));
+    if(crop.Width<=0 || crop.Height<=0) { Clear(); return; }
     var visible=overlays.Where(o=>o.Displayed).ToArray();
     var excluded=new List<Overlay>();
     var hidden=new List<Overlay>();
-    string image;
+    using var bitmap=new Bitmap(crop.Width,crop.Height,PixelFormat.Format24bppRgb);
     try {
      foreach(var overlay in visible) {
       if(overlay.ExcludeFromCapture()) excluded.Add(overlay);
       else { overlay.HideLine(); hidden.Add(overlay); }
      }
      if(visible.Length>0) Native.DwmFlush();
-     using var bitmap=new Bitmap(crop.Width,crop.Height,PixelFormat.Format24bppRgb);
      using(var graphics=Graphics.FromImage(bitmap)) graphics.CopyFromScreen(crop.Location,Point.Empty,crop.Size,CopyPixelOperation.SourceCopy);
-     using var stream=new MemoryStream(); bitmap.Save(stream,ImageFormat.Png); image=Convert.ToBase64String(stream.ToArray());
     }
     finally {
      foreach(var overlay in excluded) overlay.RestoreCapture();
      if(hidden.Count>0 && current is {} old && Active) { ShowLine(old,point); AddLog("OCR撮影 · 互換モード（下線を一時非表示）"); }
     }
+    using var stream=new MemoryStream(); bitmap.Save(stream,ImageFormat.Png); var image=Convert.ToBase64String(stream.ToArray());
     if(image==cachedImage&&crop==cachedCrop&&cachedOcr!=null) result=cachedOcr;
     else { result=await worker.Query(new Request("ocr",point.X,point.Y,image,crop.X,crop.Y),2500); cachedImage=result.Error==null?image:null; cachedCrop=crop; cachedOcr=result; }
    }

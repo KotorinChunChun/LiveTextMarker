@@ -1,4 +1,4 @@
-param([switch]$Ocr,[switch]$AssertStable)
+param([switch]$Ocr,[switch]$AssertStable,[switch]$Highlight)
 $ErrorActionPreference='Stop'
 . 'C:/Users/kotorichun/.codex/skills/windows-ui-automation/scripts/ui-toolkit.ps1'
 Add-Type @'
@@ -35,6 +35,9 @@ $main=Wait-AppWindow -Title 'Pointer Underline'
 $appRoot=[System.Windows.Automation.AutomationElement]::FromHandle($main)
 $appId=$appRoot.Current.ProcessId
 Save-WindowScreenshot -WindowHandle $main -Path "$PSScriptRoot/点滅検証-設定.png" | Out-Null
+$display=$appRoot.FindFirst([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::ComboBox))
+$display.SetFocus()
+[System.Windows.Forms.SendKeys]::SendWait($(if($Highlight){'{HOME}{DOWN}'}else{'{HOME}'}))
 $start=Find-InWindow -WindowHandle $main -Name '開始 / Start' -TimeoutMs 200
 if($start) { $p=Get-ElementCenter -Element $start; Invoke-Click -X $p[0] -Y $p[1] }
 $arguments=@('-NoProfile','-STA','-File',"`"$PSScriptRoot/文章テスト画面.ps1`"")
@@ -53,7 +56,7 @@ try {
  $deadline=(Get-Date).AddSeconds(8)
  while([FlickerProbe]::Lines($appId).Count -eq 0 -and (Get-Date) -lt $deadline) { [System.Windows.Forms.Application]::DoEvents(); Start-Sleep -Milliseconds 20 }
  if([FlickerProbe]::Lines($appId).Count -eq 0) { throw '認識結果が表示されません' }
- Start-Sleep -Milliseconds 200
+ Start-Sleep -Seconds 2
  [FlickerProbe]::Start($appId,$target)
  $missing=0; $samples=0; $deadline=(Get-Date).AddSeconds(6)
  while((Get-Date) -lt $deadline) {
@@ -62,9 +65,11 @@ try {
   $samples++; Start-Sleep -Milliseconds 15
  }
  [System.Windows.Forms.Application]::DoEvents(); [FlickerProbe]::Stop()
+ $restoreDeadline=(Get-Date).AddMilliseconds(500)
+ while(-not [FlickerProbe]::CaptureRestored($appId) -and (Get-Date) -lt $restoreDeadline) { Start-Sleep -Milliseconds 5 }
  $result=[pscustomobject]@{方式=$(if($Ocr){'OCR'}else{'UIA'});非表示イベント=[FlickerProbe]::Hides;表示イベント=[FlickerProbe]::Shows;前景切替=[FlickerProbe]::ForegroundChanges;消失サンプル=$missing;サンプル数=$samples;キャプチャ設定復元=[FlickerProbe]::CaptureRestored($appId)}
  $result | Format-List
- $result | ConvertTo-Json | Set-Content -LiteralPath "$PSScriptRoot/点滅実測-$(if($Ocr){'OCR'}else{'UIA'})-$(if($AssertStable){'修正後'}else{'修正前'}).json" -Encoding utf8
+ $result | ConvertTo-Json | Set-Content -LiteralPath "$PSScriptRoot/点滅実測-$(if($Ocr){'OCR'}else{'UIA'})-$(if($AssertStable){'修正後'}else{'修正前'})$(if($Highlight){'-塗り'}).json" -Encoding utf8
  if($AssertStable -and ($result.非表示イベント -ne 0 -or $result.前景切替 -ne 0 -or $missing -ne 0 -or -not $result.キャプチャ設定復元)) { throw '点滅または前景変更を検出しました' }
  if($AssertStable) {
   [WUA.Win]::SetCursorPos([int]($r.X+550),[int]($r.Y+120))

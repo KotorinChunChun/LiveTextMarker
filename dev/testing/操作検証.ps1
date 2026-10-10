@@ -1,3 +1,4 @@
+param([switch]$Highlight,[switch]$Dark)
 $ErrorActionPreference = 'Stop'
 . 'C:/Users/kotorichun/.codex/skills/windows-ui-automation/scripts/ui-toolkit.ps1'
 Add-Type @'
@@ -12,18 +13,24 @@ public static class PointerSmoke {
  [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr handle,out uint pid);
  [DllImport("user32.dll")] static extern IntPtr GetWindowLongPtr(IntPtr handle,int index);
  [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr handle,out Rect rect);
+ [DllImport("user32.dll")] static extern bool GetLayeredWindowAttributes(IntPtr handle,out uint key,out byte alpha,out uint flags);
  [StructLayout(LayoutKind.Sequential)] public struct Rect { public int Left,Top,Right,Bottom; }
  public static Rect[] Lines(uint pid) {
   var result=new List<Rect>();
   EnumWindows((handle,data)=>{ GetWindowThreadProcessId(handle,out var owner); if(owner==pid && IsWindowVisible(handle) && (GetWindowLongPtr(handle,-20).ToInt64()&0x20)!=0) { GetWindowRect(handle,out var rect); result.Add(rect); } return true; },IntPtr.Zero);
   return result.ToArray();
  }
+ public static bool Alpha(uint pid,byte expected) { bool valid=true; EnumWindows((h,d)=>{ GetWindowThreadProcessId(h,out var owner); if(owner==pid && IsWindowVisible(h) && (GetWindowLongPtr(h,-20).ToInt64()&0x20)!=0) { if(!GetLayeredWindowAttributes(h,out var key,out var alpha,out var flags)||alpha!=expected) valid=false; } return true; },IntPtr.Zero); return valid; }
 }
 '@
 $window = Wait-AppWindow -Title 'Pointer Underline'
 $root = [System.Windows.Automation.AutomationElement]::FromHandle($window)
 $appId = $root.Current.ProcessId
 [WUA.Win]::SetForegroundWindow($window) | Out-Null
+Save-WindowScreenshot -WindowHandle $window -Path "$PSScriptRoot/設定画面.png" | Out-Null
+$display=$root.FindFirst([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::ComboBox))
+$display.SetFocus()
+[System.Windows.Forms.SendKeys]::SendWait($(if($Highlight){'{HOME}{DOWN}'}else{'{HOME}'}))
 $mode = Find-InWindow -WindowHandle $window -Name 'Ctrlを押している間だけ'
 if($mode.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern).Current.ToggleState -eq [System.Windows.Automation.ToggleState]::Off) {
  $point = Get-ElementCenter -Element $mode
@@ -31,7 +38,9 @@ if($mode.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern).C
 }
 $start = Find-InWindow -WindowHandle $window -Name '開始 / Start' -TimeoutMs 200
 if($start) { $point=Get-ElementCenter -Element $start; Invoke-Click -X $point[0] -Y $point[1] }
-$fixture = Start-Process -FilePath (Get-Command pwsh).Source -ArgumentList @('-NoProfile','-STA','-File',"`"$PSScriptRoot/文章テスト画面.ps1`"") -WindowStyle Hidden -PassThru
+$arguments=@('-NoProfile','-STA','-File',"`"$PSScriptRoot/文章テスト画面.ps1`"")
+if($Dark) { $arguments+='-Dark' }
+$fixture = Start-Process -FilePath (Get-Command pwsh).Source -ArgumentList $arguments -WindowStyle Hidden -PassThru
 $held = $false
 try {
  $fixtureWindow = Wait-AppWindow -Title 'PointerUnderline 認識テスト'
@@ -52,9 +61,12 @@ try {
  Start-Sleep -Seconds 2
  $visible = [PointerSmoke]::Lines($appId)
  if($visible.Count -ne 3) { throw "Ctrl押下時の下線数が不正です: $($visible.Count)" }
+ if(-not [PointerSmoke]::Alpha($appId,$(if($Highlight){41}else{255}))) { throw '描画の透明度が一致しません' }
+ if($Highlight -and ($visible | Where-Object { $_.Bottom-$_.Top -lt 20 })) { throw '塗りの高さが文字範囲を覆っていません' }
  'PASS: Ctrl押下中に3行を表示'
  $visible | Sort-Object Top | Format-Table -AutoSize
- if(-not (Save-WindowScreenshot -WindowHandle $fixtureWindow -Path "$PSScriptRoot/文章認識テスト.png")) { throw '撮影に失敗しました' }
+ $captureName=if($Highlight){"塗りハイライト-$(if($Dark){'暗色'}else{'白'})"}else{'文章認識テスト'}
+ if(-not (Save-WindowScreenshot -WindowHandle $fixtureWindow -Path "$PSScriptRoot/$captureName.png")) { throw '撮影に失敗しました' }
  [PointerSmoke]::keybd_event(0x11,0,2,[UIntPtr]::Zero); $held=$false
  Start-Sleep -Milliseconds 400
  if([PointerSmoke]::Lines($appId).Count -ne 0) { throw 'Ctrl解除後も下線が表示されています' }

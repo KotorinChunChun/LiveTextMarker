@@ -3,6 +3,8 @@ namespace PointerUnderline;
 internal static class Native
 {
  [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X,Y; }
+ [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left,Top,Right,Bottom; }
+ [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(nint h,int attribute,out RECT r,int size);
  [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT p);
  [DllImport("user32.dll")] public static extern short GetAsyncKeyState(int key);
  [DllImport("user32.dll")] public static extern nint WindowFromPoint(POINT p);
