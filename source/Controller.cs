@@ -137,7 +137,7 @@ internal sealed class Controller : Form
   var now=Environment.TickCount64;
   var foreground=Native.GetForegroundWindow();
   if(foreground!=lastForeground) { lastForeground=foreground; generation++; Clear(); cachedImage=null; }
-  if(point.X!=last.X||point.Y!=last.Y) { last=point; movedAt=now; cachedImage=null; if(current is {} b&&!b.Contains(point.X,point.Y)) Clear(); }
+  if(point.X!=last.X||point.Y!=last.Y) { last=point; movedAt=now; cachedImage=null; if(current is {} b&&!Geometry.NearText(b,point.X,point.Y)) Clear(); }
   if(current is {} shown && currentScope is {} scopeNow) {
    var visibleNow=VisibleScope(currentWindow,scopeNow,point);
    if(visibleNow==null) Clear();
@@ -145,11 +145,11 @@ internal sealed class Controller : Form
   }
   if(busy||now-movedAt<65||now-lastQuery<180) return;
   var window=Native.GetAncestor(Native.WindowFromPoint(point),2);
-  Native.GetWindowThreadProcessId(window,out var pid);
-  if(pid==Environment.ProcessId) { Clear(); return; }
+  if(overlays.Any(o=>o.IsHandleCreated && o.Handle==window)) { Clear(); return; }
   busy=true; lastQuery=now; var version=generation;
   try {
    var result=await worker.Query(new Request("uia",point.X,point.Y,TargetWindow:(long)window),650);
+   var uiaDetail=result.Error ?? result.UiaDetail ?? "UIA文字範囲なし";
    if(closing||!Active||version!=generation) return;
    if(result.Scope is not {} frame || result.ScopeId==null) { Clear(); status.Text=result.Sensitive?"パスワード欄では認識を停止します。":result.Error ?? "対象領域を取得できません。"; AddLog(status.Text); return; }
    var visibleScope=VisibleScope(window,frame,point);
@@ -196,7 +196,7 @@ internal sealed class Controller : Form
     visibleScope=VisibleScope(window,frame,live);
     if(visibleScope==null) { Clear(); return; }
    }
-   if(DetectionGate.Accept(result.Bounds,Active,closing,version,generation,(long)window,(long)liveWindow,(long)foreground,(long)Native.GetForegroundWindow(),live.X,live.Y,point.Y,Native.Scale(live))) { var box=result.Bounds!.Value; current=box; currentScope=frame; currentVisible=visibleScope; currentWindow=window; currentLines=Geometry.ClipRows(result.Lines ?? new[]{box},frame); ShowLine(box,live); status.Text=$"追従中 · {result.Source} · {currentLines.Length}行"; AddLog($"{result.Source}{(result.Source=="OCR"?"（UIA該当なし）":"")} · {currentLines.Length}行 · 幅 {box.Width:0}px"); }
+   if(DetectionGate.Accept(result.Bounds,Active,closing,version,generation,(long)window,(long)liveWindow,(long)foreground,(long)Native.GetForegroundWindow(),live.X,live.Y,point.Y,Native.Scale(live))) { var box=result.Bounds!.Value; current=box; currentScope=frame; currentVisible=visibleScope; currentWindow=window; currentLines=Geometry.ClipRows(result.Lines ?? new[]{box},frame); ShowLine(box,live); status.Text=$"追従中 · {result.Source} · {currentLines.Length}行"; AddLog($"{result.Source}{(result.Source=="OCR"?$"（{uiaDetail}）":"")} · {currentLines.Length}行 · 幅 {box.Width:0}px"); }
    else { Clear(); status.Text=result.Sensitive?"パスワード欄では認識を停止します。":result.Error is {} error?error:$"追従中 · {result.Source} · 該当なし"; AddLog(status.Text); }
   } catch(Exception ex) { Clear(); status.Text="認識を再試行します: "+ex.GetType().Name; AddLog(status.Text); }
   finally { busy=false; }

@@ -9,7 +9,8 @@ public readonly record struct Box(double X, double Y, double Width, double Heigh
 }
 public static class Geometry
 {
- public static Box? Pick(IEnumerable<Box> boxes, double x, double y) => boxes.Where(b=>b.Contains(x,y)).OrderBy(b=>Math.Abs((b.Y+b.Height/2)-y)).ThenBy(b=>b.Width).Cast<Box?>().FirstOrDefault();
+ public static bool NearText(Box box,double x,double y)=>box.Contains(x,y,Math.Clamp(box.Height*0.25,3,6));
+ public static Box? Pick(IEnumerable<Box> boxes, double x, double y) => boxes.Where(b=>NearText(b,x,y)).OrderBy(b=>b.Contains(x,y,0)?0:1).ThenBy(b=>Math.Abs((b.Y+b.Height/2)-y)).ThenBy(b=>b.Width).Cast<Box?>().FirstOrDefault();
  public static Box[] MergeRows(IEnumerable<Box> boxes)
  {
   var rows=new List<Box>();
@@ -45,11 +46,11 @@ public static class Geometry
  }
 }
 public sealed record Request(string Kind, int X, int Y, string? Image = null, int OriginX = 0, int OriginY = 0, long TargetWindow=0, Box? Scope=null, string? ScopeId=null);
-public sealed record Detection(Box? Bounds = null, string Source = "", string? Error = null, bool Sensitive = false, Box[]? Lines = null, Box? Scope=null, string? ScopeId=null);
+public sealed record Detection(Box? Bounds = null, string Source = "", string? Error = null, bool Sensitive = false, Box[]? Lines = null, Box? Scope=null, string? ScopeId=null, string? UiaDetail=null);
 public static class DetectionGate
 {
  public static bool Accept(Box? bounds, bool enabled, bool closing, int requestGeneration, int currentGeneration, long sourceWindow, long liveWindow, long sourceForeground, long liveForeground, double x, double y, double requestY, double scale) =>
-  enabled && !closing && requestGeneration==currentGeneration && sourceWindow==liveWindow && sourceForeground==liveForeground && bounds is {} box && box.Contains(x,y) && Math.Abs(y-requestY)<12*scale;
+  enabled && !closing && requestGeneration==currentGeneration && sourceWindow==liveWindow && sourceForeground==liveForeground && bounds is {} box && Geometry.NearText(box,x,y) && Math.Abs(y-requestY)<12*scale;
 }
 public static class ActivationGate
 {

@@ -8,7 +8,7 @@ internal sealed class Detector : IDisposable
  public Detection Uia(Request request)
  {
   int x=request.X,y=request.Y;
-  Box? scope=null; string? scopeId=null;
+  Box? scope=null; string? scopeId=null; bool hasTextPattern=false;
   try {
    var element=AutomationElement.FromPoint(new System.Windows.Point(x,y));
    var target=(nint)request.TargetWindow;
@@ -22,7 +22,7 @@ internal sealed class Detector : IDisposable
     if(node.Current.ProcessId!=(int)targetPid) break;
     if(node.Current.IsPassword) return new(Sensitive:true);
     var type=node.Current.ControlType;
-    bool frame=type==ControlType.TabItem || type==ControlType.Tab || type==ControlType.Text || type==ControlType.Button || type==ControlType.Hyperlink || type==ControlType.ListItem || type==ControlType.TreeItem || type==ControlType.Document || type==ControlType.Edit || type==ControlType.Pane || type==ControlType.Group || type==ControlType.List || type==ControlType.DataGrid || type==ControlType.Table || type==ControlType.Tree || type==ControlType.Image || type==ControlType.Window;
+    bool frame=type==ControlType.CheckBox || type==ControlType.RadioButton || type==ControlType.ComboBox || type==ControlType.Spinner || type==ControlType.TabItem || type==ControlType.Tab || type==ControlType.Text || type==ControlType.Button || type==ControlType.Hyperlink || type==ControlType.ListItem || type==ControlType.TreeItem || type==ControlType.Document || type==ControlType.Edit || type==ControlType.Pane || type==ControlType.Group || type==ControlType.List || type==ControlType.DataGrid || type==ControlType.Table || type==ControlType.Tree || type==ControlType.Image || type==ControlType.Window;
     var r=node.Current.BoundingRectangle;
     var box=new Box(r.X,r.Y,r.Width,r.Height);
     if(frame && box.Contains(x,y,0)) { scope=box; scopeId=string.Join("-",node.GetRuntimeId()); break; }
@@ -34,11 +34,11 @@ internal sealed class Detector : IDisposable
    for(int depth=0;element!=null && depth<12;depth++,element=TreeWalker.ControlViewWalker.GetParent(element)) {
     if(element.Current.ProcessId!=(int)targetPid) break;
     if(element.Current.IsPassword) return new(Sensitive:true);
-    if(element.Current.ProcessId==Environment.ProcessId) continue;
     if(!element.TryGetCurrentPattern(TextPattern.Pattern,out var pattern)) {
      if(string.Join("-",element.GetRuntimeId())==scopeId) break;
      continue;
     }
+    hasTextPattern=true;
     var range=((TextPattern)pattern).RangeFromPoint(new System.Windows.Point(x,y));
     var line=range.Clone(); line.ExpandToEnclosingUnit(TextUnit.Line);
     range.ExpandToEnclosingUnit(TextUnit.Paragraph);
@@ -63,7 +63,7 @@ internal sealed class Detector : IDisposable
     if(picked!=null) return new(picked,"UI Automation",Lines:boxes,Scope:scope,ScopeId:scopeId);
     if(string.Join("-",element.GetRuntimeId())==scopeId) break;
    }
-   return new(Scope:scope,ScopeId:scopeId);
+   return new(Scope:scope,ScopeId:scopeId,UiaDetail:hasTextPattern?"UIA文字範囲なし":"UIA要素取得・TextPatternなし");
   } catch(ElementNotAvailableException) { return new(); }
     catch(Exception ex) { return new(Error:"UI Automation: "+ex.GetType().Name,Scope:scope,ScopeId:scopeId); }
  }
