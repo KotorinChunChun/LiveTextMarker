@@ -1,3 +1,4 @@
+param([switch]$Ocr)
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 $form = [System.Windows.Forms.Form]::new()
@@ -12,5 +13,15 @@ $text.Text = "これは文章の行頭から行末までを確認するための
 $text.Select(12,10)
 $text.SelectionColor = [System.Drawing.Color]::Blue
 $text.Select(0,0)
-$form.Controls.Add($text)
+if($Ocr) {
+ $image=[System.Drawing.Bitmap]::new(580,260)
+ $graphics=[System.Drawing.Graphics]::FromImage($image)
+ $graphics.Clear([System.Drawing.Color]::FromArgb(25,25,25))
+ $font=[System.Drawing.Font]::new('Yu Gothic UI',18)
+ $graphics.DrawString('画像だけの文章を認識しています。',$font,[System.Drawing.Brushes]::White,10,10)
+ $graphics.DrawString('下線が点滅しないことを確認します。',$font,[System.Drawing.Brushes]::White,10,48)
+ $graphics.Dispose(); $font.Dispose()
+ $picture=[System.Windows.Forms.PictureBox]::new(); $picture.Dock='Fill'; $picture.Image=$image
+ $form.Controls.Add($picture)
+} else { $form.Controls.Add($text) }
 [System.Windows.Forms.Application]::Run($form)
