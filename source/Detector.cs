@@ -22,7 +22,7 @@ internal sealed class Detector : IDisposable
     if(node.Current.ProcessId!=(int)targetPid) break;
     if(node.Current.IsPassword) return new(Sensitive:true);
     var type=node.Current.ControlType;
-    bool frame=type==ControlType.Text || type==ControlType.Button || type==ControlType.Hyperlink || type==ControlType.ListItem || type==ControlType.TreeItem || type==ControlType.Document || type==ControlType.Edit || type==ControlType.Pane || type==ControlType.Group || type==ControlType.List || type==ControlType.DataGrid || type==ControlType.Table || type==ControlType.Tree || type==ControlType.Image || type==ControlType.Window;
+    bool frame=type==ControlType.TabItem || type==ControlType.Tab || type==ControlType.Text || type==ControlType.Button || type==ControlType.Hyperlink || type==ControlType.ListItem || type==ControlType.TreeItem || type==ControlType.Document || type==ControlType.Edit || type==ControlType.Pane || type==ControlType.Group || type==ControlType.List || type==ControlType.DataGrid || type==ControlType.Table || type==ControlType.Tree || type==ControlType.Image || type==ControlType.Window;
     var r=node.Current.BoundingRectangle;
     var box=new Box(r.X,r.Y,r.Width,r.Height);
     if(frame && box.Contains(x,y,0)) { scope=box; scopeId=string.Join("-",node.GetRuntimeId()); break; }
