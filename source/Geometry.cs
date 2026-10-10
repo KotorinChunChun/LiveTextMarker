@@ -1,4 +1,4 @@
-namespace PointerUnderline;
+namespace LiveTextMarker;
 public readonly record struct Box(double X, double Y, double Width, double Height)
 {
  public double Right => X + Width;

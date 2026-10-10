@@ -59,10 +59,10 @@ UI Automation（UIA）のTextPatternから段落を取得し、同じ表示行�
 リポジトリルートから見た出力は `source/out/LiveTextMarker/LiveTextMarker.exe` です。ビルドのみを行う場合は、`source` フォルダーで次を実行します。
 
 ```powershell
-dotnet publish PointerUnderline.csproj -c Release -r win-x64 --self-contained true -p:Platform=x64 -o out/LiveTextMarker
+dotnet publish LiveTextMarker.csproj -c Release -r win-x64 --self-contained true -p:Platform=x64 -o out/LiveTextMarker
 ```
 
-ビルド時のみ依存パッケージ等を取得し、実行時はオフラインです。作業フォルダー名、内部名前空間、csproj名、設定保存先 `%LOCALAPPDATA%/PointerUnderline/settings.json`、二重起動防止のMutexは、既存環境との互換性のため旧名を維持しています。
+ビルド時のみ依存パッケージ等を取得し、実行時はオフラインです。作業フォルダーは `C:/develop/test/LiveTextMarker`、プロジェクトは `source/LiveTextMarker.csproj`、内部名前空間とMutexもLiveTextMarkerです。設定は `%LOCALAPPDATA%/LiveTextMarker/settings.json` に保存します。新保存先に読み込める設定がない場合は、旧保存先 `%LOCALAPPDATA%/PointerUnderline/settings.json` から自動で引き継ぎます。旧設定は削除しません。
 
 現行仕様は [仕様書](docs/仕様.md)、実測済み・未測定の範囲は [確認記録](VALIDATION.md) を参照してください。
 

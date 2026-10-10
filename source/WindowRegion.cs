@@ -1,4 +1,4 @@
-namespace PointerUnderline;
+namespace LiveTextMarker;
 internal static class WindowRegion
 {
  public static Box? Visible(nint target,Box scope,int x,int y,IEnumerable<nint> ignored) {

@@ -1,7 +1,7 @@
 using System.Windows.Automation;
 using System.Windows.Automation.Text;
 using Tesseract;
-namespace PointerUnderline;
+namespace LiveTextMarker;
 internal sealed class Detector : IDisposable
 {
  private TesseractEngine? engine;

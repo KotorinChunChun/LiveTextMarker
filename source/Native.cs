@@ -1,5 +1,5 @@
 using System.Runtime.InteropServices;
-namespace PointerUnderline;
+namespace LiveTextMarker;
 internal static class Native
 {
  [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X,Y; }

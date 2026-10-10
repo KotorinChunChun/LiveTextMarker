@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
-namespace PointerUnderline;
+namespace LiveTextMarker;
 internal sealed class Worker : IDisposable
 {
  private Process? process;

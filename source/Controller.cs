@@ -1,7 +1,7 @@
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Windows.Forms;
-namespace PointerUnderline;
+namespace LiveTextMarker;
 internal sealed class Controller : Form
 {
  private readonly List<Overlay> overlays=new();

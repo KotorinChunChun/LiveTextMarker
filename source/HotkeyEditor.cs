@@ -1,5 +1,5 @@
 using System.Windows.Forms;
-namespace PointerUnderline;
+namespace LiveTextMarker;
 internal sealed record HotkeyBinding(uint Modifiers,int Key)
 {
  public static HotkeyBinding ToggleDefault=>new(3,(int)Keys.U);

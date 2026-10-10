@@ -1,4 +1,4 @@
-using PointerUnderline;
+using LiveTextMarker;
 int passed=0;
 void Check(bool value,string label) { if(!value) throw new Exception(label); Console.WriteLine("PASS "+label); passed++; }
 var lines=new[]{new Box(-1500,100,700,30),new Box(-1500,150,300,30),new Box(0,0,0,0)};

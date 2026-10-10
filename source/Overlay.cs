@@ -1,6 +1,6 @@
 using System.Drawing;
 using System.Windows.Forms;
-namespace PointerUnderline;
+namespace LiveTextMarker;
 internal sealed class Overlay : Form
 {
  public Overlay() { FormBorderStyle=FormBorderStyle.None; ShowInTaskbar=false; TopMost=true; Enabled=false; BackColor=Color.FromArgb(239,45,56); AutoScaleMode=AutoScaleMode.None; StartPosition=FormStartPosition.Manual; }
