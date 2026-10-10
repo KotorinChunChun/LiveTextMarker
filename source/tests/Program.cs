@@ -36,4 +36,14 @@ Check(Geometry.Highlight(new Box(-10,20,120,30),new Box(0,0,100,100))==new Box(0
 Check(Geometry.HighlightAlpha(16)==41,"default highlight remains 84 percent transparent");
 Check(Geometry.HighlightAlpha(100)==77,"prevent fully opaque highlight");
 Check(Geometry.HighlightAlpha(0)==20,"minimum visible highlight");
+var frame=new Box(100,100,300,200);
+var scoped=Geometry.ClipRows(new[]{new Box(0,120,900,20),new Box(500,120,100,20),new Box(120,350,100,20)},frame);
+Check(scoped.Length==1 && scoped[0]==new Box(100,120,300,20),"clip oversized provider row and exclude neighboring frames");
+Check(Geometry.VisibleRegion(frame,new[]{new Box(300,90,100,300)},150,130)==new Box(100,100,200,200),"exclude overlapping right window");
+Check(Geometry.VisibleRegion(frame,new[]{new Box(50,90,100,300)},200,130)==new Box(150,100,250,200),"exclude overlapping left window");
+Check(Geometry.VisibleRegion(frame,new[]{new Box(200,100,100,200)},250,130)==null,"reject pointer hidden by another window");
+Check(Geometry.VisibleRegion(frame,new[]{new Box(400,100,100,200)},150,130)==frame,"adjacent window does not shrink target");
+Check(Geometry.VisibleRegion(frame,new[]{new Box(299,100,1,200)},150,130)?.Right==299,"exclude even one pixel overlap");
+Check(Geometry.VisibleRegion(frame,new[]{new Box(300,90,100,300),new Box(50,90,100,300)},200,130)==new Box(150,100,150,200),"exclude windows on both sides");
+Check(Geometry.VisibleRegion(frame,Array.Empty<Box>(),500,130)==null,"reject pointer outside frame");
 Console.WriteLine($"{passed} checks passed.");

@@ -26,6 +26,8 @@ internal sealed class Controller : Form
  private bool enabled,busy,closing;
  private Box? current;
  private Box[] currentLines=Array.Empty<Box>();
+ private Box? currentScope,currentVisible;
+ private nint currentWindow;
  private Native.POINT last;
  private long movedAt,lastQuery;
  private int generation;
@@ -78,7 +80,8 @@ internal sealed class Controller : Form
  private void SaveSettings() { try { new Settings(ctrlOnly.Checked,ocr.Checked,(int)thickness.Value,offset.Value,lineColor.ToArgb(),displayMode.SelectedIndex==1,(int)opacity.Value,highlightColor.ToArgb()).Save(); } catch(Exception ex) { AddLog("設定保存: "+ex.GetType().Name); } }
  private void AddLog(string message) { if(message==lastLog) return; lastLog=message; log.Items.Insert(0,$"{DateTime.Now:HH:mm:ss}  {message}"); while(log.Items.Count>10) log.Items.RemoveAt(log.Items.Count-1); }
  private void SetEnabled(bool value) { enabled=value; generation++; cachedImage=null; cachedOcr=null; Clear(); toggle.Text=value?"一時停止 / Pause":"開始 / Start"; tray.Text=value?"Pointer Underline — 追従中":"Pointer Underline — 停止中"; status.Text=value?(Active?"追従中。文字の上にポインタを移動してください。":"Ctrl待機中"):"一時停止中"; AddLog(value?"開始":"一時停止"); lastQuery=0; }
- private void Clear() { current=null; currentLines=Array.Empty<Box>(); HideLines(); }
+ private void Clear() { current=null; currentLines=Array.Empty<Box>(); currentScope=null; currentVisible=null; currentWindow=0; HideLines(); }
+ private Box? VisibleScope(nint window,Box scope,Native.POINT point)=>WindowRegion.Visible(window,scope,point.X,point.Y,overlays.Where(o=>o.IsHandleCreated).Select(o=>o.Handle));
  private void HideLines() { foreach(var overlay in overlays) overlay.HideLine(); }
  protected override void WndProc(ref Message m) { if(m.Msg==0x0312) { if(m.WParam==(nint)1) SetEnabled(!enabled); else if(m.WParam==(nint)2) Close(); } base.WndProc(ref m); }
  private async void Tick(object? sender,EventArgs args)
@@ -90,14 +93,22 @@ internal sealed class Controller : Form
   var foreground=Native.GetForegroundWindow();
   if(foreground!=lastForeground) { lastForeground=foreground; generation++; Clear(); cachedImage=null; }
   if(point.X!=last.X||point.Y!=last.Y) { last=point; movedAt=now; cachedImage=null; if(current is {} b&&!b.Contains(point.X,point.Y)) Clear(); }
+  if(current is {} shown && currentScope is {} scopeNow) {
+   var visibleNow=VisibleScope(currentWindow,scopeNow,point);
+   if(visibleNow==null) Clear();
+   else if(visibleNow!=currentVisible) { currentVisible=visibleNow; ShowLine(shown,point); cachedImage=null; }
+  }
   if(busy||now-movedAt<65||now-lastQuery<180) return;
   var window=Native.GetAncestor(Native.WindowFromPoint(point),2);
   Native.GetWindowThreadProcessId(window,out var pid);
   if(pid==Environment.ProcessId) { Clear(); return; }
   busy=true; lastQuery=now; var version=generation;
   try {
-   var result=await worker.Query(new Request("uia",point.X,point.Y),650);
+   var result=await worker.Query(new Request("uia",point.X,point.Y,TargetWindow:(long)window),650);
    if(closing||!Active||version!=generation) return;
+   if(result.Scope is not {} frame || result.ScopeId==null) { Clear(); status.Text=result.Sensitive?"パスワード欄では認識を停止します。":result.Error ?? "対象領域を取得できません。"; AddLog(status.Text); return; }
+   var visibleScope=VisibleScope(window,frame,point);
+   if(visibleScope==null) { Clear(); return; }
    if(result.Bounds==null&&!result.Sensitive&&ocr.Checked) {
     // Reject stale requests before capturing another location.
     Native.GetCursorPos(out var next);
@@ -105,7 +116,8 @@ internal sealed class Controller : Form
     var screen=Screen.FromPoint(new Point(point.X,point.Y)).Bounds;
     int cropHeight=Math.Min(screen.Height,Math.Max(180,(int)(240*Native.Scale(point))));
     var crop=new Rectangle(screen.Left,Math.Clamp(point.Y-cropHeight/2,screen.Top,screen.Bottom-cropHeight),screen.Width,cropHeight);
-    if(Native.DwmGetWindowAttribute(window,9,out var targetRect,16)==0) crop=Rectangle.Intersect(crop,new Rectangle(targetRect.Left,targetRect.Top,targetRect.Right-targetRect.Left,targetRect.Bottom-targetRect.Top));
+    var limit=visibleScope.Value;
+    crop=Rectangle.Intersect(crop,Rectangle.FromLTRB((int)Math.Ceiling(limit.X),(int)Math.Ceiling(limit.Y),(int)Math.Floor(limit.Right),(int)Math.Floor(limit.Bottom)));
     if(crop.Width<=0 || crop.Height<=0) { Clear(); return; }
     var visible=overlays.Where(o=>o.Displayed).ToArray();
     var excluded=new List<Overlay>();
@@ -124,14 +136,22 @@ internal sealed class Controller : Form
      if(hidden.Count>0 && current is {} old && Active) { ShowLine(old,point); AddLog("OCR撮影 · 互換モード（下線を一時非表示）"); }
     }
     using var stream=new MemoryStream(); bitmap.Save(stream,ImageFormat.Png); var image=Convert.ToBase64String(stream.ToArray());
-    if(image==cachedImage&&crop==cachedCrop&&cachedOcr!=null) result=cachedOcr;
-    else { result=await worker.Query(new Request("ocr",point.X,point.Y,image,crop.X,crop.Y),2500); cachedImage=result.Error==null?image:null; cachedCrop=crop; cachedOcr=result; }
+    if(image==cachedImage&&crop==cachedCrop&&cachedOcr!=null&&cachedOcr.ScopeId==result.ScopeId) result=cachedOcr;
+    else { result=await worker.Query(new Request("ocr",point.X,point.Y,image,crop.X,crop.Y,(long)window,limit,result.ScopeId),2500); cachedImage=result.Error==null?image:null; cachedCrop=crop; cachedOcr=result; }
    }
    if(closing||!Active||version!=generation) return;
    Native.GetCursorPos(out var live);
    var liveWindow=Native.GetAncestor(Native.WindowFromPoint(live),2);
    if(liveWindow!=window||Native.GetForegroundWindow()!=foreground) { Clear(); return; }
-   if(DetectionGate.Accept(result.Bounds,Active,closing,version,generation,(long)window,(long)liveWindow,(long)foreground,(long)Native.GetForegroundWindow(),live.X,live.Y,point.Y,Native.Scale(live))) { var box=result.Bounds!.Value; current=box; currentLines=result.Lines ?? new[]{box}; ShowLine(box,live); status.Text=$"追従中 · {result.Source} · {currentLines.Length}行"; AddLog($"{result.Source}{(result.Source=="OCR"?"（UIA該当なし）":"")} · {currentLines.Length}行 · 幅 {box.Width:0}px"); }
+   if(result.Bounds!=null) {
+    var fresh=await worker.Query(new Request("scope",live.X,live.Y,TargetWindow:(long)window),650);
+    if(closing||!Active||version!=generation || fresh.Scope!=frame || fresh.ScopeId!=result.ScopeId) { Clear(); return; }
+    Native.GetCursorPos(out live);
+    if(Native.GetAncestor(Native.WindowFromPoint(live),2)!=window || Native.GetForegroundWindow()!=foreground) { Clear(); return; }
+    visibleScope=VisibleScope(window,frame,live);
+    if(visibleScope==null) { Clear(); return; }
+   }
+   if(DetectionGate.Accept(result.Bounds,Active,closing,version,generation,(long)window,(long)liveWindow,(long)foreground,(long)Native.GetForegroundWindow(),live.X,live.Y,point.Y,Native.Scale(live))) { var box=result.Bounds!.Value; current=box; currentScope=frame; currentVisible=visibleScope; currentWindow=window; currentLines=Geometry.ClipRows(result.Lines ?? new[]{box},frame); ShowLine(box,live); status.Text=$"追従中 · {result.Source} · {currentLines.Length}行"; AddLog($"{result.Source}{(result.Source=="OCR"?"（UIA該当なし）":"")} · {currentLines.Length}行 · 幅 {box.Width:0}px"); }
    else { Clear(); status.Text=result.Sensitive?"パスワード欄では認識を停止します。":result.Error is {} error?error:$"追従中 · {result.Source} · 該当なし"; AddLog(status.Text); }
   } catch(Exception ex) { Clear(); status.Text="認識を再試行します: "+ex.GetType().Name; AddLog(status.Text); }
   finally { busy=false; }
@@ -143,6 +163,8 @@ internal sealed class Controller : Form
   for(int i=0;i<overlays.Count;i++) {
    if(i>=lines.Length) { overlays[i].HideLine(); continue; }
    var screen=new Box(s.X,s.Y,s.Width,s.Height);
+   if(currentScope is {} frame) screen=screen.Intersect(frame);
+   if(currentVisible is {} visible) screen=screen.Intersect(visible);
    var fill=displayMode.SelectedIndex==1;
    var line=fill?Geometry.Highlight(lines[i],screen):Geometry.Underline(lines[i],screen,Native.Scale(point),(int)thickness.Value,(double)offset.Value);
    if(line.Width>0&&line.Height>0) overlays[i].Draw(line,fill?highlightColor:lineColor,fill?Geometry.HighlightAlpha((int)opacity.Value):(byte)255); else overlays[i].HideLine();

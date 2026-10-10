@@ -17,6 +17,8 @@ internal static class Native
  [DllImport("user32.dll")] public static extern bool SetLayeredWindowAttributes(nint h,uint key,byte alpha,uint flags);
  [DllImport("user32.dll")] public static extern bool IsWindowVisible(nint h);
  [DllImport("user32.dll")] public static extern bool SetWindowDisplayAffinity(nint h,uint affinity);
+ public delegate bool EnumWindowsCallback(nint h,nint data);
+ [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsCallback callback,nint data);
  [DllImport("dwmapi.dll")] public static extern int DwmFlush();
  [DllImport("shcore.dll")] public static extern int GetDpiForMonitor(nint h,int type,out uint x,out uint y);
  [DllImport("user32.dll")] public static extern nint MonitorFromPoint(POINT p,uint flags);

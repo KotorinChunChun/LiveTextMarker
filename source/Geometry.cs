@@ -23,9 +23,23 @@ public static class Geometry
  public static Box Underline(Box text, Box screen, double scale, int thickness, double offset) => new Box(text.X,text.Bottom+offset*scale,text.Width,Math.Max(1,thickness*scale)).Intersect(screen);
  public static Box Highlight(Box text,Box screen)=>text.Intersect(screen);
  public static byte HighlightAlpha(int percent)=>(byte)Math.Round(Math.Clamp(percent,8,30)*255/100.0,MidpointRounding.AwayFromZero);
+ public static Box[] ClipRows(IEnumerable<Box> rows,Box scope)=>rows.Select(b=>b.Intersect(scope)).Where(b=>b.Valid).ToArray();
+ public static Box? VisibleRegion(Box scope,IEnumerable<Box> occluders,double x,double y) {
+  if(!scope.Contains(x,y,0)) return null;
+  foreach(var other in occluders) {
+   var overlap=scope.Intersect(other);
+   if(overlap.Width<=0 || overlap.Height<=0) continue;
+   if(overlap.Contains(x,y,0)) return null;
+   var candidates=new[]{new Box(scope.X,scope.Y,overlap.X-scope.X,scope.Height),new Box(overlap.Right,scope.Y,scope.Right-overlap.Right,scope.Height),new Box(scope.X,scope.Y,scope.Width,overlap.Y-scope.Y),new Box(scope.X,overlap.Bottom,scope.Width,scope.Bottom-overlap.Bottom)};
+   var visible=candidates.Where(b=>b.Contains(x,y,0)).OrderByDescending(b=>b.Width*b.Height).Cast<Box?>().FirstOrDefault();
+   if(visible==null) return null;
+   scope=visible.Value;
+  }
+  return scope;
+ }
 }
-public sealed record Request(string Kind, int X, int Y, string? Image = null, int OriginX = 0, int OriginY = 0);
-public sealed record Detection(Box? Bounds = null, string Source = "", string? Error = null, bool Sensitive = false, Box[]? Lines = null);
+public sealed record Request(string Kind, int X, int Y, string? Image = null, int OriginX = 0, int OriginY = 0, long TargetWindow=0, Box? Scope=null, string? ScopeId=null);
+public sealed record Detection(Box? Bounds = null, string Source = "", string? Error = null, bool Sensitive = false, Box[]? Lines = null, Box? Scope=null, string? ScopeId=null);
 public static class DetectionGate
 {
  public static bool Accept(Box? bounds, bool enabled, bool closing, int requestGeneration, int currentGeneration, long sourceWindow, long liveWindow, long sourceForeground, long liveForeground, double x, double y, double requestY, double scale) =>

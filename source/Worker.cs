@@ -31,7 +31,7 @@ internal sealed class Worker : IDisposable
   using var detector=new Detector(); string? line;
   while((line=Console.ReadLine())!=null) {
    Detection result;
-   try { var req=JsonSerializer.Deserialize<Request>(line)!; result=req.Kind=="uia" ? detector.Uia(req.X,req.Y) : detector.Ocr(req); }
+   try { var req=JsonSerializer.Deserialize<Request>(line)!; result=req.Kind=="ocr" ? detector.Ocr(req) : detector.Uia(req); }
    catch { result=new(Error:"Invalid detector request."); }
    Console.WriteLine(JsonSerializer.Serialize(result)); Console.Out.Flush();
   }
