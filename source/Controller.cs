@@ -47,8 +47,7 @@ internal sealed class Controller : Form
   thickness.Value=Math.Clamp(settings.Thickness,1,12); offset.Value=Math.Clamp(settings.Offset,-30,30); lineColor=Color.FromArgb(settings.Color);
   highlightColor=Color.FromArgb(settings.HighlightColor); opacity.Value=Math.Clamp(settings.HighlightOpacity,8,30);
   displayMode.Items.AddRange(new object[]{"下線","塗り"}); displayMode.SelectedIndex=settings.Highlight?1:0;
-  var version=typeof(Controller).Assembly.GetName().Version!;
-  Text=$"設定 - LiveTextMarker - ver {version.Major}.{version.Minor}.{version.Build}"; ClientSize=new Size(680,540); FormBorderStyle=FormBorderStyle.FixedSingle; MinimizeBox=false; MaximizeBox=false; StartPosition=FormStartPosition.CenterScreen;
+  Text=WindowTitle.Create("設定"); ClientSize=new Size(680,540); FormBorderStyle=FormBorderStyle.FixedSingle; MinimizeBox=false; MaximizeBox=false; StartPosition=FormStartPosition.CenterScreen;
   using(var iconStream=typeof(Controller).Assembly.GetManifestResourceStream("LiveTextMarker.AppIcon")!) using(var appIcon=new Icon(iconStream)) Icon=(Icon)appIcon.Clone();
   Font=new Font("Yu Gothic UI",10); AutoScaleMode=AutoScaleMode.Dpi;
   BackColor=Color.FromArgb(245,246,248); ForeColor=Color.FromArgb(32,38,46);

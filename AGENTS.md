@@ -1,5 +1,7 @@
 # LiveTextMarker の開発ルール
 
+- 全独自ウィンドウのタイトルは `画面名 - LiveTextMarker - ver X.Y.Z`。メイン画面のみ画面名を省略する。半角ハイフンで区切り、WindowTitle.Createでアセンブリ版から生成する。操作説明と作者名はタイトルへ追加しない。
+
 - 親フォルダの AGENTS.md に従う。PowerShell は pwsh を使用する。
 - 文書・コミットは日本語で残す。既存の source/ と app/ の構成を維持する。
 - 利用方法は README.md、認識処理は source/Detector.cs、表示範囲と検証は source/Geometry.cs と source/tests/ を参照する。

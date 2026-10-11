@@ -3,7 +3,7 @@ using System.Windows.Forms;
 namespace LiveTextMarker;
 internal sealed class Overlay : Form
 {
- public Overlay() { FormBorderStyle=FormBorderStyle.None; ShowInTaskbar=false; TopMost=true; Enabled=false; BackColor=Color.FromArgb(239,45,56); AutoScaleMode=AutoScaleMode.None; StartPosition=FormStartPosition.Manual; }
+ public Overlay() { Text=WindowTitle.Create("強調表示"); FormBorderStyle=FormBorderStyle.None; ShowInTaskbar=false; TopMost=true; Enabled=false; BackColor=Color.FromArgb(239,45,56); AutoScaleMode=AutoScaleMode.None; StartPosition=FormStartPosition.Manual; }
  protected override void OnHandleCreated(EventArgs e) { base.OnHandleCreated(e); Native.SetLayeredWindowAttributes(Handle,0,255,2); }
  protected override bool ShowWithoutActivation=>true;
  protected override CreateParams CreateParams { get { var p=base.CreateParams; p.ExStyle|=0x08000000|0x00000080|0x00000020|0x00080000; return p; } }
