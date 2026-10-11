@@ -4,6 +4,8 @@ using System.Windows.Forms;
 namespace LiveTextMarker;
 internal sealed class Controller : Form
 {
+ private KotorinToys.Integration.ManagementEndpoint? management;
+ protected override void OnLoad(EventArgs e) { base.OnLoad(e); management=new("live-text-marker",this,()=>{Show();WindowState=FormWindowState.Normal;Activate();},ExitApplication); }
  private readonly List<Overlay> overlays=new();
  private readonly Worker worker=new();
  private readonly System.Windows.Forms.Timer timer=new() { Interval=20 };
@@ -104,7 +106,7 @@ internal sealed class Controller : Form
   UpdateModeControls();
   timer.Tick+=Tick; timer.Start();
  }
- private void ExitApplication() { exitRequested=true; Close(); }
+ private void ExitApplication() { management?.Dispose(); exitRequested=true; Close(); }
  private void ApplyHotkeys() {
   Native.UnregisterHotKey(Handle,1); Native.UnregisterHotKey(Handle,2);
   toggleModifiersDown=toggleKey.ModifierOnlyDown; quitModifiersDown=quitKey.ModifierOnlyDown;
