@@ -1,5 +1,9 @@
 # LiveTextMarker
 
+## GitHub開発版インストーラー
+
+[Releases](https://github.com/KotorinChunChun/LiveTextMarker/releases)からWindows 11 x64向けのランタイム同梱インストーラーを取得できます。未署名の開発版です。Microsoft Visual C++ Runtimeは同梱していません。不足時はMicrosoft公式の配布物を別途導入してください。設定は更新・削除時も保持します。
+
 Windows 10 / 11（64 bit）用。ポインタの位置にある文章を認識し、折り返しを含む各表示行を下線または薄い塗りで強調します。現行版は **1.1.0** です。
 
 ## 起動と操作
