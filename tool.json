@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "live-text-marker",
+  "name": "LiveTextMarker",
+  "version": "1.1.0",
+  "summary": "画面上の文字に下線・強調表示を付ける",
+  "category": "表示支援",
+  "executable": "source/out/LiveTextMarker/LiveTextMarker.exe",
+  "installedExecutable": "LiveTextMarker.exe",
+  "appId": "KotorinToys.LiveTextMarker",
+  "manual": "README.md",
+  "readme": "README.md",
+  "shortcuts": "config/shortcuts.json",
+  "distributionStatus": "unpublished",
+  "supportedEnvironment": "windows11-x64",
+  "investigationStatus": "confirmed",
+  "icon": "source/assets/LiveTextMarker.ico",
+  "capabilities": ["status", "show", "stop", "silent-start"],
+  "runtimes": [
+    {
+      "id": "dotnet8",
+      "name": ".NET 8 Desktop x64",
+      "kind": "dotnet-desktop",
+      "major": 8
+    },
+    {
+      "id": "vc",
+      "name": "Visual C++ 2015–2022 x64",
+      "kind": "vc-x64",
+      "feature": "ローカルOCR",
+      "guide": "READMEの動作環境を確認してください。"
+    },
+    {
+      "id": "jpn",
+      "name": "日本語OCR学習データ",
+      "kind": "file",
+      "path": "tessdata/jpn.traineddata",
+      "feature": "ローカルOCR"
+    },
+    {
+      "id": "eng",
+      "name": "英語OCR学習データ",
+      "kind": "file",
+      "path": "tessdata/eng.traineddata",
+      "feature": "ローカルOCR"
+    }
+  ]
+}

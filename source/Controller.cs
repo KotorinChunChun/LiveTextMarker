@@ -5,7 +5,7 @@ namespace LiveTextMarker;
 internal sealed class Controller : Form
 {
  private KotorinToys.Integration.ManagementEndpoint? management;
- protected override void OnLoad(EventArgs e) { base.OnLoad(e); management=new("live-text-marker",this,()=>{Show();WindowState=FormWindowState.Normal;Activate();},ExitApplication); }
+ internal void StartManagement() { management ??= new("live-text-marker",this,()=>{Show();WindowState=FormWindowState.Normal;Activate();},ExitApplication); }
  private readonly List<Overlay> overlays=new();
  private readonly Worker worker=new();
  private readonly System.Windows.Forms.Timer timer=new() { Interval=20 };
