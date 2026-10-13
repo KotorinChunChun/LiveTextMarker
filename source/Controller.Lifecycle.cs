@@ -3,6 +3,7 @@ using System.Drawing.Imaging;
 using System.Windows.Forms;
 
 namespace LiveTextMarker;
+
 internal sealed partial class Controller
 {
     internal void StartManagement()
